@@ -68,6 +68,16 @@ def construct_parameter_content(
     return content
 
 
+def extract_and_process_return_annotation(
+    node_returns: libcst.Annotation | None,
+) -> str:
+    if isinstance(node_returns, libcst.Annotation) and node_returns:
+        annotation: str | None = extract_type_annotation(node_returns)
+        return annotation if annotation else "No return annotation"
+    else:
+        return "No return annotation"
+
+
 def get_function_id(
     function_node: libcst.FunctionDef,
     parent_id: str,

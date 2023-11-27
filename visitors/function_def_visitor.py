@@ -10,10 +10,11 @@ from visitors.base_code_block_visitor import BaseCodeBlockVisitor
 
 from models.models import (
     FunctionModel,
-    DecoratorModel,
+    ParameterListModel,
 )
 from visitors.node_processing.function_def_functions import (
-    extract_and_process_parameter,
+    extract_and_process_return_annotation,
+    extract_star_parameter,
     get_function_id,
     get_function_position_data,
     get_parameters_list,
@@ -23,12 +24,18 @@ from visitors.visitor_manager import VisitorManager
 from visitors.node_processing.common_functions import (
     extract_code_content,
     extract_decorators,
+    extract_type_annotation,
     process_comment,
 )
 
 if TYPE_CHECKING:
     from visitors.class_def_visitor import ClassDefVisitor
     from visitors.module_visitor import ModuleVisitor
+
+    from models.models import (
+        DecoratorModel,
+        ParameterModel,
+    )
 
 
 class FunctionDefVisitor(BaseCodeBlockVisitor):
@@ -60,6 +67,8 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
         self.module_code_content: str = module_code_content
 
     def visit_FunctionDef(self, node: libcst.FunctionDef) -> None:
+        """Visits the function definition and recursively visits the children."""
+
         function_node_id: str = get_function_id(
             function_node=node,
             parent_id=self.model_id,
@@ -115,39 +124,45 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
             for decorator in decorator_list:
                 self.model_builder.add_decorator(decorator)
 
+            return_annotation: str = extract_and_process_return_annotation(node.returns)
+            self.model_builder.set_return_annotation(return_annotation)
+
     def visit_Parameters(self, node: libcst.Parameters) -> None:
-        print(
-            f"\nParameters for {self.model_builder.function_attributes.function_name}:\n"
+        """Visits the parameters of a function definition and sets the model in the builder instance."""
+
+        params: list[ParameterModel] | None = (
+            get_parameters_list(node.params) if node.params else None
+        )
+        kwonly_params: list[ParameterModel] | None = (
+            get_parameters_list(node.kwonly_params) if node.kwonly_params else None
+        )
+        posonly_params: list[ParameterModel] | None = (
+            get_parameters_list(node.posonly_params) if node.posonly_params else None
+        )
+        star_arg: ParameterModel | None = (
+            extract_star_parameter(node.star_arg)
+            if node.star_arg and isinstance(node.star_arg, libcst.Param)
+            else None
+        )
+        star_kwarg: ParameterModel | None = (
+            extract_star_parameter(node.star_kwarg) if node.star_kwarg else None
+        )
+        self.model_builder.add_parameters_list(
+            ParameterListModel(
+                params=params,
+                star_arg=star_arg,
+                kwonly_params=kwonly_params,
+                star_kwarg=star_kwarg,
+                posonly_params=posonly_params,
+            )
         )
 
-        # TODO: Add model construction and add to builder logic
-        if node.params:
-            parameters: list[str] | None = get_parameters_list(node.params)
-            print(f"Parameters: {parameters}")
-
-        if node.star_arg:
-            if isinstance(node.star_arg, libcst.Param):
-                star: str = str(node.star_arg.star)
-                star_arg: str = extract_and_process_parameter(node.star_arg, star=star)
-                print(f"Star arg: {star_arg}")
-
-        if node.kwonly_params:
-            kwonly_params: list[str] | None = get_parameters_list(node.kwonly_params)
-            print(f"Kwonly params: {kwonly_params}")
-
-        if node.star_kwarg:
-            stars: str = str(node.star_kwarg.star)
-            star_kwarg: str = extract_and_process_parameter(node.star_kwarg, star=stars)
-            print(f"Star kwarg: {star_kwarg}")
-
-        if node.posonly_params:
-            posonly_params: list[str] | None = get_parameters_list(node.posonly_params)
-            print(f"Posonly params: {posonly_params}")
-
     def visit_Comment(self, node: libcst.Comment) -> None:
+        """Visits the comment of a function definition and sets the model in the builder instance."""
         process_comment(node, self.model_builder)
 
     def leave_FunctionDef(self, original_node: libcst.FunctionDef) -> None:
+        """Builds the function model and adds it to the parent visitor instance."""
         for child in self.children:
             self.model_builder.add_child(child)
         if self.not_added_to_parent_visitor(self.model_id):
