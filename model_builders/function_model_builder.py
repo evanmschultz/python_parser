@@ -46,7 +46,7 @@ class FunctionModelBuilder(BaseModelBuilder):
             self.function_attributes.docstring = docstring
         return self
 
-    def add_parameters(
+    def add_parameters_list(
         self, parameter_list_model: ParameterListModel
     ) -> "FunctionModelBuilder":
         """Add a parameter to the function model."""
