@@ -4,6 +4,7 @@ import libcst
 from libcst.metadata import CodeRange
 
 from models.enums import BlockType
+from models.models import ParameterModel
 
 from visitors.node_processing.common_functions import extract_type_annotation
 from visitors.visitor_manager import VisitorManager
@@ -11,19 +12,26 @@ from visitors.visitor_manager import VisitorManager
 
 def get_parameters_list(
     parameter_sequence: Sequence[libcst.Param],
-) -> list[str] | None:
-    parameters: list[str] = []
+) -> list[ParameterModel] | None:
+    params: list[ParameterModel] | None = None
 
-    for parameter in parameter_sequence:
-        parameter_content: str = extract_and_process_parameter(parameter)
-        parameters.append(parameter_content)
+    if parameter_sequence:
+        params = []
+        for parameter in parameter_sequence:
+            param: ParameterModel = extract_and_process_parameter(parameter)
+            params.append(param)
 
-    return parameters if parameters else None
+    return params if params else None
+
+
+def extract_star_parameter(param: libcst.Param) -> ParameterModel:
+    star = str(param.star)
+    return extract_and_process_parameter(param, star=star)
 
 
 def extract_and_process_parameter(
     parameter: libcst.Param, star: str | None = None
-) -> str:
+) -> ParameterModel:
     name: str = get_parameter_name(parameter)
     annotation: str | None = extract_type_annotation(parameter)
     default: str | None = extract_default(parameter)
@@ -31,9 +39,7 @@ def extract_and_process_parameter(
     parameter_content: str = construct_parameter_content(
         name=name, annotation=annotation, default=default, star=star
     )
-    # TODO: Add model logic, to builder
-    # return ParameterModel(content=parameter_content)
-    return parameter_content
+    return ParameterModel(content=parameter_content)
 
 
 def get_parameter_name(parameter: libcst.Param) -> str:
