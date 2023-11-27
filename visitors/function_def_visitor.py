@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Mapping, Sequence, Union
+from typing import TYPE_CHECKING, Mapping, Union
 import libcst
 from libcst import CSTNode
 from libcst.metadata import CodeRange
@@ -36,7 +36,7 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
         self,
         parent_id: str,
         parent_visitor_instance: Union[
-            ModuleVisitor, "ClassDefVisitor", "FunctionDefVisitor"
+            ModuleVisitor, ClassDefVisitor, "FunctionDefVisitor"
         ],
         function_name: str,
         function_id: str,

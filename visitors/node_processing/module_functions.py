@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Sequence
+from typing import Sequence
 
 import libcst
 from models.enums import ImportModuleType

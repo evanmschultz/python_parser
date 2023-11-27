@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Mapping, Sequence, Union
+from typing import TYPE_CHECKING, Mapping, Union
 import libcst
-from libcst import CSTNode, ClassDef
+from libcst import CSTNode
 from libcst.metadata import CodeRange
 
 from model_builders.class_model_builder import ClassModelBuilder
-from models.enums import BlockType
 from visitors.base_code_block_visitor import BaseCodeBlockVisitor
 
 from models.models import (
-    ClassKeywordModel,
     ClassModel,
     DecoratorModel,
 )
@@ -130,8 +128,6 @@ class ClassDefVisitor(BaseCodeBlockVisitor):
                             module_code_content=self.module_code_content,
                         )
                         child.visit(class_visitor)
-
-            # TODO: From here Function
 
             class_name: str = self.model_builder.class_attributes.class_name
 
