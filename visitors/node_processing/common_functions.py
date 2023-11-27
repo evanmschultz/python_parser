@@ -106,66 +106,63 @@ def extract_decorators(
 def extract_type_annotation(node: libcst.CSTNode) -> str | None:
     """Extract the type annotation from a node."""
 
+    def get_node_annotation(node: libcst.CSTNode) -> libcst.Annotation | None:
+        """Get the annotation from a node."""
+
+        if isinstance(node, libcst.Param):
+            return node.annotation
+        elif isinstance(node, libcst.AnnAssign):
+            return node.annotation
+        elif isinstance(node, libcst.Annotation):
+            return node
+        else:
+            return None
+
+    def process_type_annotation_expression(expression: libcst.BaseExpression) -> str:
+        """Recursively process a type annotation expression."""
+
+        if isinstance(expression, libcst.Subscript):
+            return extract_generic_types_from_subscript(expression)
+        elif isinstance(expression, libcst.BinaryOperation):
+            left: str = process_type_annotation_expression(expression.left)
+            right: str = process_type_annotation_expression(expression.right)
+            return f"{left} | {right}"
+        elif isinstance(expression, libcst.Name):
+            return expression.value
+        return ""
+
+    def extract_generic_types_from_subscript(
+        node: libcst.Subscript | libcst.BaseExpression,
+    ) -> str:
+        """Recursively extract generic types from a Subscript node."""
+
+        if isinstance(node, libcst.Subscript):
+            generics: list[str] = []
+            for element in node.slice:
+                if isinstance(element.slice, libcst.Index):
+                    if isinstance(element.slice.value, libcst.BinaryOperation):
+                        union_type: str = process_type_annotation_expression(
+                            element.slice.value
+                        )
+                        generics.append(union_type)
+                    else:
+                        generic_type: str = extract_generic_types_from_subscript(
+                            element.slice.value
+                        )
+                        generics.append(generic_type)
+
+            if isinstance(node.value, libcst.Name):
+                generics_str = ", ".join(generics)
+                return f"{node.value.value}[{generics_str}]"
+            else:
+                return ""
+
+        elif isinstance(node, libcst.Name):
+            return node.value
+        return ""
+
     annotation: libcst.Annotation | None = get_node_annotation(node)
 
     if annotation and isinstance(annotation, libcst.Annotation):
         return process_type_annotation_expression(annotation.annotation)
     return None
-
-
-def get_node_annotation(node: libcst.CSTNode) -> libcst.Annotation | None:
-    """Get the annotation from a node."""
-
-    if isinstance(node, libcst.Param):
-        return node.annotation
-    elif isinstance(node, libcst.AnnAssign):
-        return node.annotation
-    elif isinstance(node, libcst.Annotation):
-        return node
-    else:
-        return None
-
-
-def process_type_annotation_expression(expression: libcst.BaseExpression) -> str:
-    """Recursively process a type annotation expression."""
-
-    if isinstance(expression, libcst.Subscript):
-        return extract_generic_types_from_subscript(expression)
-    elif isinstance(expression, libcst.BinaryOperation):
-        left: str = process_type_annotation_expression(expression.left)
-        right: str = process_type_annotation_expression(expression.right)
-        return f"{left} | {right}"
-    elif isinstance(expression, libcst.Name):
-        return expression.value
-    return ""
-
-
-def extract_generic_types_from_subscript(
-    node: libcst.Subscript | libcst.BaseExpression,
-) -> str:
-    """Recursively extract generic types from a Subscript node."""
-
-    if isinstance(node, libcst.Subscript):
-        generics: list[str] = []
-        for element in node.slice:
-            if isinstance(element.slice, libcst.Index):
-                if isinstance(element.slice.value, libcst.BinaryOperation):
-                    union_type: str = process_type_annotation_expression(
-                        element.slice.value
-                    )
-                    generics.append(union_type)
-                else:
-                    generic_type: str = extract_generic_types_from_subscript(
-                        element.slice.value
-                    )
-                    generics.append(generic_type)
-
-        if isinstance(node.value, libcst.Name):
-            generics_str = ", ".join(generics)
-            return f"{node.value.value}[{generics_str}]"
-        else:
-            return ""
-
-    elif isinstance(node, libcst.Name):
-        return node.value
-    return ""
