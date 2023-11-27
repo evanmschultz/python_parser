@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, Sequence, Union
+from typing import TYPE_CHECKING, Union
 import libcst
-from models.models import DecoratorModel
 
-from utilities.comment_extractor import CommentExtractor
 
 if TYPE_CHECKING:
     from visitors.class_def_visitor import ClassDefVisitor
@@ -23,7 +21,6 @@ if TYPE_CHECKING:
 
     from models.models import (
         ClassModel,
-        CommentModel,
         FunctionModel,
         StandaloneCodeBlockModel,
     )
@@ -72,20 +69,6 @@ class BaseCodeBlockVisitor(libcst.CSTVisitor, ABC):
         self.children: list[ClassModel | FunctionModel | StandaloneCodeBlockModel] = []
         self.children_ids_set: set[str] = set()
 
-    @staticmethod
-    def process_comment(
-        node: libcst.CSTNode,
-        model_builder: ClassModelBuilder
-        | FunctionModelBuilder
-        | ModuleModelBuilder
-        | StandaloneCodeBlockModelBuilder,
-    ) -> None:
-        important_comment: CommentModel | None = CommentExtractor.get_important_comment(
-            node
-        )
-        if important_comment:
-            model_builder.add_important_comment(important_comment)
-
     def not_added_to_parent_visitor(self, child_id: str) -> bool:
         if self.parent_visitor_instance:
             return child_id not in self.parent_visitor_instance.children_ids_set
@@ -100,59 +83,3 @@ class BaseCodeBlockVisitor(libcst.CSTVisitor, ABC):
 
             if child_model.id:
                 self.parent_visitor_instance.children_ids_set.add(child_model.id)
-
-    def get_code_content(
-        self, module_content: str, start_line_num: int, end_line_num: int
-    ) -> str:
-        code_content_list: list[str] = module_content.split("\n")[
-            start_line_num - 1 : end_line_num
-        ]
-        code_content: str = "\n".join(code_content_list)
-
-        return code_content
-
-    @staticmethod
-    def extract_decorators(
-        decorators: Sequence[libcst.Decorator],
-    ) -> list[DecoratorModel]:
-        """Works for both class and function decorators"""
-        decorator_list: list[DecoratorModel] = []
-
-        def extract_function_name_from_decorator(
-            decorator: libcst.Decorator,
-        ) -> str | None:
-            if isinstance(decorator.decorator, libcst.Call):
-                if isinstance(decorator.decorator.func, libcst.Name):
-                    return decorator.decorator.func.value
-            return None
-
-        def extract_arguments_from_decorator(call: libcst.Call) -> list[str]:
-            def get_value_from_arg(arg) -> str:
-                return str(arg.value.value)
-
-            return [get_value_from_arg(arg) for arg in call.args]
-
-        def process_decorator(decorator: libcst.Decorator) -> None:
-            func_name: str | None = extract_function_name_from_decorator(decorator)
-            if func_name and isinstance(decorator.decorator, libcst.Call):
-                args: list[str] = extract_arguments_from_decorator(decorator.decorator)
-                decorator_model = DecoratorModel(
-                    decorator_name=func_name, decorator_args=args
-                )
-
-                decorator_list.append(decorator_model)
-
-        def handle_non_call_decorators(decorator: libcst.Decorator) -> None:
-            if isinstance(decorator.decorator, libcst.Name):
-                decorator_model = DecoratorModel(
-                    decorator_name=decorator.decorator.value
-                )
-                decorator_list.append(decorator_model)
-
-        for decorator in decorators:
-            if isinstance(decorator.decorator, libcst.Call):
-                process_decorator(decorator)
-            else:
-                handle_non_call_decorators(decorator)
-
-        return decorator_list
