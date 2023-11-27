@@ -41,56 +41,56 @@ class ClassModelBuilder(BaseModelBuilder):
         )
 
     def set_class_name(self, class_name: str) -> "ClassModelBuilder":
-        """Set the name of the class in the model."""
+        """Sets the name of the class in the model."""
         self.class_attributes.class_name = class_name
         return self
 
     def add_decorator(self, decorator: DecoratorModel) -> "ClassModelBuilder":
-        """Add a decorator to the class model."""
+        """Adds a decorator to the class model."""
         if not self.class_attributes.decorators:
             self.class_attributes.decorators = []
         self.class_attributes.decorators.append(decorator)
         return self
 
     def add_base_class(self, base_class: str) -> "ClassModelBuilder":
-        """Add a base class to the class model."""
+        """Adds a base class to the class model."""
         if not self.class_attributes.base_classes:
             self.class_attributes.base_classes = []
         self.class_attributes.base_classes.append(base_class)
         return self
 
     def set_class_type(self, class_type: ClassType) -> "ClassModelBuilder":
-        """Set the type of the class in the model."""
+        """Sets the type of the class in the model."""
         self.class_attributes.class_type = class_type
         return self
 
     def set_docstring(self, docstring: str | None) -> "ClassModelBuilder":
-        """Set the docstring of the class in the model."""
+        """Sets the docstring of the class in the model."""
         if docstring:
             self.class_attributes.docstring = docstring
         return self
 
     # TODO: Add attribute model
     def add_attribute(self, attribute) -> "ClassModelBuilder":
-        """Add an attribute of the class in the model."""
+        """Adds an attribute of the class in the model."""
         if not self.class_attributes.attributes:
             self.class_attributes.attributes = []
         self.class_attributes.attributes.append(attribute)
         return self
 
     def add_keyword(self, keyword: ClassKeywordModel) -> "ClassModelBuilder":
-        """Add a keyword of the class in the model."""
+        """Adds a keyword of the class in the model."""
         if not self.class_attributes.keywords:
             self.class_attributes.keywords = []
         self.class_attributes.keywords.append(keyword)
         return self
 
     def _get_class_specific_attributes(self) -> dict[str, Any]:
-        """Get the module specific attributes."""
+        """Gets the class specific attributes."""
         return self.class_attributes.model_dump()
 
     def _create_model_instance(self) -> ClassModel:
-        """Create a ClassModel instance."""
+        """Creates a ClassModel instance."""
         return ClassModel(
             **self._get_common_attributes(),
             **self._get_class_specific_attributes(),
