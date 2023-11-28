@@ -9,6 +9,7 @@ sample_something
 # TODO: Sample TODO
 something = "something"
 
+import asyncio
 from dataclasses import dataclass
 import os
 from typing import Iterable, List as list, Any, Union
@@ -108,6 +109,13 @@ def process_numbers(
     for number in param2:
         # Process number
         pass
+
+
+async def async_example(name, delay):
+    print(f"Task {name}: Started with a delay of {delay} seconds")
+    await asyncio.sleep(delay)
+    print(f"Task {name}: Completed after {delay} seconds")
+    return f"Result of Task {name}"
 
 
 if __name__ == "__main__":
