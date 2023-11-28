@@ -1,3 +1,6 @@
+# TODO: method_type logic
+# TODO: Fix type hinting errors
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Mapping, Union
@@ -6,6 +9,7 @@ from libcst import CSTNode
 from libcst.metadata import CodeRange
 
 from model_builders.function_model_builder import FunctionModelBuilder
+from models.enums import BlockType
 from visitors.base_code_block_visitor import BaseCodeBlockVisitor
 
 from models.models import (
@@ -24,7 +28,6 @@ from visitors.visitor_manager import VisitorManager
 from visitors.node_processing.common_functions import (
     extract_code_content,
     extract_decorators,
-    extract_type_annotation,
     process_comment,
 )
 
@@ -100,14 +103,10 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
                         child.visit(function_visitor)
 
             function_name: str = self.model_builder.function_attributes.function_name
-
-            docstring: str | None = node.get_docstring()
-            if docstring:
-                self.model_builder.set_docstring(docstring)
-
             position_data: dict[str, int] | None = get_function_position_data(
                 function_name, self.position_metadata
             )
+
             if position_data:
                 self.model_builder.set_block_start_line_number(
                     position_data["start_line_number"]
@@ -121,14 +120,19 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
                 self.model_builder.set_code_content(code_content)
 
             decorator_list: list[DecoratorModel] = extract_decorators(node.decorators)
-            for decorator in decorator_list:
-                self.model_builder.add_decorator(decorator)
-
+            docstring: str | None = node.get_docstring()
             return_annotation: str = extract_and_process_return_annotation(node.returns)
-            self.model_builder.set_return_annotation(return_annotation)
+            is_method: bool = self.is_method()
 
             if node.asynchronous:
                 self.model_builder.set_is_async(True)
+
+            (
+                self.model_builder.set_docstring(docstring)
+                .set_decorator_list(decorator_list)
+                .set_is_method(is_method)
+                .set_return_annotation(return_annotation)
+            )
 
     def visit_Parameters(self, node: libcst.Parameters) -> None:
         """Visits the parameters of a function definition and sets the model in the builder instance."""
@@ -171,3 +175,16 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
         if self.not_added_to_parent_visitor(self.model_id):
             built_model: FunctionModel = self.model_builder.build()  # type: ignore
             self.add_child_to_parent_visitor(built_model)
+
+    def is_method(self) -> bool:
+        """Returns true if an ancestor of the function is a class."""
+
+        ancestor: ClassDefVisitor | FunctionDefVisitor | ModuleVisitor = (
+            self.parent_visitor_instance
+        )  # type: ignore # TODO: Fix type hinting error
+
+        while ancestor.model_builder.common_attributes.block_type != BlockType.MODULE:
+            if ancestor.model_builder.common_attributes.block_type == BlockType.CLASS:
+                return True
+            ancestor = ancestor.parent_visitor_instance  # type: ignore # TODO: Fix type hinting error
+        return False
