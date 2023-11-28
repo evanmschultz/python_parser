@@ -63,8 +63,9 @@ class FunctionModelBuilder(BaseModelBuilder):
     def set_method_type(self, method_type) -> "FunctionModelBuilder":
         ...
 
-    def set_is_async(self, is_async) -> "FunctionModelBuilder":
-        ...
+    def set_is_async(self, is_async: bool) -> "FunctionModelBuilder":
+        self.function_attributes.is_async = is_async
+        return self
 
     def _get_function_specific_attributes(self) -> dict[str, Any]:
         """Gets the function specific attributes."""

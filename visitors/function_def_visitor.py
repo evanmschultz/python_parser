@@ -127,6 +127,9 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
             return_annotation: str = extract_and_process_return_annotation(node.returns)
             self.model_builder.set_return_annotation(return_annotation)
 
+            if node.asynchronous:
+                self.model_builder.set_is_async(True)
+
     def visit_Parameters(self, node: libcst.Parameters) -> None:
         """Visits the parameters of a function definition and sets the model in the builder instance."""
 
