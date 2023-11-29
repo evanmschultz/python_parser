@@ -61,14 +61,3 @@ class VisitorManager:
 
         self.processed_nodes[module_id].add(node_id)
         return False
-
-    def get_node_id(self, node_type: BlockType, context: dict) -> str:
-        if node_type == BlockType.MODULE:
-            return ModuleIDGenerationStrategy.generate_id(**context)
-        elif node_type == BlockType.CLASS:
-            return ClassIDGenerationStrategy.generate_id(**context)
-        elif node_type == BlockType.FUNCTION:
-            return FunctionIDGenerationStrategy.generate_id(**context)
-        # TODO: StandAloneCodeBlock...
-
-        raise ValueError(f"Unsupported node type for ID generation: {node_type}")

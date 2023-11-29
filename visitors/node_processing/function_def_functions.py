@@ -78,40 +78,43 @@ def extract_and_process_return_annotation(
         return "No return annotation"
 
 
-def get_function_id(
-    function_node: libcst.FunctionDef,
+def get_function_id_context(
+    function_name: str,
     parent_id: str,
-    visitor_manager: VisitorManager,
-) -> str:
-    id_generation_context: dict[str, str] = {
+) -> dict[str, str]:
+    return {
         "parent_id": parent_id,
-        "function_name": function_node.name.value,
+        "function_name": function_name,
     }
-    function_node_id: str = visitor_manager.get_node_id(
-        BlockType.FUNCTION, id_generation_context
-    )
-    return function_node_id
 
 
 def get_function_position_data(
-    node_name: str, position_metadata: Mapping[libcst.CSTNode, CodeRange]
-) -> dict[str, int] | None:
-    position_data: dict[str, int] | None = None
-
+    node_name: str,
+    position_metadata: Mapping[libcst.CSTNode, CodeRange],
+) -> dict[str, int]:
+    """Gets the start and end line numbers of a function."""
     for item in position_metadata:
-        if type(item) is libcst.FunctionDef and item.name.value == node_name:
-            start_line_number: int = position_metadata[item].start.line
-            end_line_number: int = position_metadata[item].end.line
+        if (
+            type(item) is libcst.FunctionDef or type(item) is libcst.ClassDef
+        ) and item.name.value == node_name:
+            start: int = position_metadata[item].start.line
+            end: int = position_metadata[item].end.line
 
-            position_data = {
-                "start_line_number": start_line_number,
-                "end_line_number": end_line_number,
+            position_data: dict[str, int] = {
+                "start": start,
+                "end": end,
             }
-            break
+            return position_data
+    raise Exception(
+        "Class position data not found. Check logic in `get_and_set_class_position_data`!"
+    )
 
-    if position_data:
-        return position_data
-    else:
-        raise Exception(
-            "Class position data not found. Check logic in `get_and_set_class_position_data`!"
-        )
+
+def func_is_method(id: str) -> bool:
+    """Returns true if an ancestor of the function is a class."""
+    return str(BlockType.CLASS) in id
+
+
+def func_is_async(node: libcst.FunctionDef) -> bool:
+    """Returns true if the function is async."""
+    return True if node.asynchronous else False

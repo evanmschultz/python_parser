@@ -3,6 +3,7 @@ from libcst.metadata import MetadataWrapper
 
 from models.models import ModuleModel
 from visitors.module_visitor import ModuleVisitor
+from visitors.node_processing.common_functions import get_node_id
 from visitors.visitor_manager import VisitorManager
 from models.enums import BlockType
 
@@ -26,11 +27,11 @@ class PythonParser:
         self.file_path: str = file_path
         self.visitor_manager: VisitorManager = VisitorManager.get_instance()
 
-        self.module_id: str = self.visitor_manager.get_node_id(
-            BlockType.MODULE, {"file_path": self.file_path}
-        )
+        module_id_context: dict[str, str] = {
+            "file_path": self.file_path,
+        }
+        self.module_id: str = get_node_id(BlockType.MODULE, module_id_context)
 
-        # TODO: Remove if metadata doesn't work
         self.module_visitor = ModuleVisitor(
             file_path=file_path,
             visitor_manager=self.visitor_manager,

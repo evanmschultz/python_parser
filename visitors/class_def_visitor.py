@@ -1,13 +1,15 @@
 # TODO: get and set attributes logic, requires the FunctionDefVisitor for `__init__` methods, and custom logic for other types of classes
 
 from __future__ import annotations
+from functools import partial
 
-from typing import TYPE_CHECKING, Mapping, Union
+from typing import TYPE_CHECKING, Callable, Mapping, Union
 import libcst
 from libcst import CSTNode
 from libcst.metadata import CodeRange
 
 from model_builders.class_model_builder import ClassModelBuilder
+from models.enums import BlockType
 from visitors.base_code_block_visitor import BaseCodeBlockVisitor
 
 from models.models import (
@@ -17,15 +19,20 @@ from models.models import (
 from visitors.node_processing.class_def_functions import (
     get_and_set_class_bases,
     get_and_set_class_keywords,
-    get_class_id,
+    get_class_id_context,
     get_class_position_data,
 )
 from visitors.node_processing.common_functions import (
+    get_node_id,
     extract_code_content,
     extract_decorators,
     process_comment,
 )
-from visitors.node_processing.function_def_functions import get_function_id
+from visitors.node_processing.function_def_functions import (
+    get_function_id_context,
+    get_function_position_data,
+)
+
 from visitors.visitor_manager import VisitorManager
 from visitors.function_def_visitor import FunctionDefVisitor
 
@@ -79,40 +86,48 @@ class ClassDefVisitor(BaseCodeBlockVisitor):
         self.visitor_manager: VisitorManager = VisitorManager.get_instance()
         self.position_metadata: Mapping[CSTNode, CodeRange] = position_metadata
         self.module_code_content: str = module_code_content
-
-    def visit_ClassDef(self, node: libcst.ClassDef) -> None:
-        class_node_id: str = get_class_id(
-            class_node=node,
-            parent_id=self.model_id,
-            visitor_manager=self.visitor_manager,
+        self.node_id_generator = partial(
+            get_node_id,
+            node_type=BlockType.CLASS,
         )
 
-        if not self.visitor_manager.has_been_processed(self.file_path, class_node_id):
+    def visit_ClassDef(self, node: libcst.ClassDef) -> None:
+        id_context: dict[str, str] = get_class_id_context(
+            node.name.value,
+            self.parent_id,
+        )
+        node_id: str = self.node_id_generator(context=id_context)
+
+        if not self.visitor_manager.has_been_processed(self.file_path, node_id):
             for child in node.body.body:
                 if isinstance(child, libcst.ClassDef):
-                    class_node_id: str = get_class_id(
-                        class_node=child,
-                        parent_id=self.model_id,
-                        visitor_manager=self.visitor_manager,
+                    id_context: dict[str, str] = get_class_id_context(
+                        child.name.value,
+                        self.model_id,
                     )
+                    child_node_id: str = self.node_id_generator(context=id_context)
 
                     if not self.visitor_manager.has_been_processed(
-                        self.file_path, class_node_id
+                        self.file_path, child_node_id
                     ):
                         class_name: str = child.name.value
                         class_visitor = ClassDefVisitor(
                             parent_id=self.model_id,
                             parent_visitor_instance=self,
                             class_name=class_name,
-                            class_id=class_node_id,
+                            class_id=child_node_id,
                             position_metadata=self.position_metadata,
                             module_code_content=self.module_code_content,
                         )
                         child.visit(class_visitor)
 
                 if isinstance(child, libcst.FunctionDef):
-                    function_id: str = get_function_id(
-                        child, self.model_id, self.visitor_manager
+                    function_id_context: dict[str, str] = get_function_id_context(
+                        function_name=child.name.value,
+                        parent_id=self.model_id,
+                    )
+                    function_id: str = get_node_id(
+                        BlockType.FUNCTION, function_id_context
                     )
 
                     if not self.visitor_manager.has_been_processed(
@@ -135,18 +150,18 @@ class ClassDefVisitor(BaseCodeBlockVisitor):
             if docstring:
                 self.model_builder.set_docstring(docstring)
 
-            position_data: dict[str, int] | None = get_class_position_data(
+            position_data: dict[str, int] | None = get_function_position_data(
                 class_name, self.position_metadata
             )
             if position_data:
                 self.model_builder.set_block_start_line_number(
-                    position_data["start_line_number"]
-                ).set_block_end_line_number(position_data["end_line_number"])
+                    position_data["start"]
+                ).set_block_end_line_number(position_data["end"])
 
                 code_content: str = extract_code_content(
                     self.module_code_content,
-                    position_data["start_line_number"],
-                    position_data["end_line_number"],
+                    position_data["start"],
+                    position_data["end"],
                 )
                 self.model_builder.set_code_content(code_content)
 

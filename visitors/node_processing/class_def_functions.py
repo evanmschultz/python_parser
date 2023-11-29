@@ -8,28 +8,14 @@ from models.models import ClassKeywordModel
 from visitors.visitor_manager import VisitorManager
 
 
-def get_class_id(
-    class_node: libcst.ClassDef, parent_id: str, visitor_manager: VisitorManager
-) -> str:
-    """
-    Get the unique identifier for a class node.
-
-    Args:
-        child (libcst.ClassDef): The class node.
-        parent_id (str): The identifier of the parent node.
-        visitor_manager (VisitorManager): The visitor manager.
-
-    Returns:
-        str: The unique identifier for the class node.
-    """
-    id_generation_context: dict[str, str] = {
+def get_class_id_context(
+    class_name: str,
+    parent_id: str,
+) -> dict[str, str]:
+    return {
         "parent_id": parent_id,
-        "class_name": class_node.name.value,
+        "class_name": class_name,
     }
-    class_node_id: str = visitor_manager.get_node_id(
-        BlockType.CLASS, id_generation_context
-    )
-    return class_node_id
 
 
 def get_class_position_data(

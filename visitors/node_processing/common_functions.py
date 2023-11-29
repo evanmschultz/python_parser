@@ -1,6 +1,7 @@
 from typing import Sequence
 from libcst import CSTNode, EmptyLine, Comment
 import libcst
+
 from model_builders.class_model_builder import ClassModelBuilder
 from model_builders.function_model_builder import FunctionModelBuilder
 from model_builders.module_model_builder import ModuleModelBuilder
@@ -8,8 +9,26 @@ from model_builders.standalone_code_block_model_builder import (
     StandaloneCodeBlockModelBuilder,
 )
 
+from id_generation.id_generation_strategies import (
+    ClassIDGenerationStrategy,
+    FunctionIDGenerationStrategy,
+    ModuleIDGenerationStrategy,
+)
+
 from models.models import CommentModel, DecoratorModel
-from models.enums import CommentType
+from models.enums import BlockType, CommentType
+
+
+def get_node_id(node_type: BlockType, context: dict) -> str:
+    if node_type == BlockType.MODULE:
+        return ModuleIDGenerationStrategy.generate_id(**context)
+    elif node_type == BlockType.CLASS:
+        return ClassIDGenerationStrategy.generate_id(**context)
+    elif node_type == BlockType.FUNCTION:
+        return FunctionIDGenerationStrategy.generate_id(**context)
+    # TODO: StandAloneCodeBlock...
+
+    raise ValueError(f"Unsupported node type for ID generation: {node_type}")
 
 
 def extract_code_content(

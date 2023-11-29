@@ -13,6 +13,50 @@ from model_builders.base_model_builder import BaseModelBuilder
 
 
 class FunctionModelBuilder(BaseModelBuilder):
+    """
+    A builder class for creating instances of FunctionModel. It inherits from BaseModelBuilder
+    and adds specific attributes and methods for handling function-related details in code blocks.
+
+    Args:
+        parent_id (str | None): ID of the parent code block.
+        function_name (str): Name of the function.
+        function_id (str): Unique identifier for the function.
+
+    Attributes:
+        function_attributes (FunctionSpecificAttributes): Holds specific attributes for the function model.
+
+    Methods:
+        set_function_name(function_name: str) -> "FunctionModelBuilder":
+            Sets the name of the function in the model instance.
+
+        add_decorator(decorator: DecoratorModel) -> "FunctionModelBuilder":
+            Adds a decorator to the function model instance.
+
+        set_docstring(docstring: str | None) -> "FunctionModelBuilder":
+            Sets the docstring for the function model instance.
+
+        add_parameters_list(parameter_list_model: ParameterListModel) -> "FunctionModelBuilder":
+            Adds parameters to the function model instance.
+
+        set_return_annotation(return_type: str) -> "FunctionModelBuilder":
+            Sets the return type annotation for the function model.
+
+        set_is_method(is_method: bool) -> "FunctionModelBuilder":
+            Sets whether the function is a method.
+
+        set_method_type(method_type: MethodType) -> "FunctionModelBuilder":
+            Sets the method type (e.g., instance, class, static) for the function model.
+
+        set_is_async(is_async: bool) -> "FunctionModelBuilder":
+            Sets whether the function is asynchronous.
+
+        _get_function_specific_attributes() -> dict[str, Any]:
+            Retrieves function-specific attributes for model construction.
+
+        _create_model_instance() -> FunctionModel:
+            Constructs and returns an instance of FunctionModel.
+    """
+
     def __init__(self, parent_id: str, function_name: str, function_id: str) -> None:
         super().__init__(
             parent_id=parent_id,

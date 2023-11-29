@@ -1,16 +1,18 @@
+from functools import partial
 from typing import Mapping
 
 import libcst
 from libcst import CSTNode, MetadataWrapper
 from libcst.metadata import WhitespaceInclusivePositionProvider, CodeRange
+from models.enums import BlockType
 
 from visitors.base_code_block_visitor import BaseCodeBlockVisitor
 from model_builders.module_model_builder import ModuleModelBuilder
 from visitors.class_def_visitor import ClassDefVisitor
 from visitors.function_def_visitor import FunctionDefVisitor
-from visitors.node_processing.class_def_functions import get_class_id
-from visitors.node_processing.common_functions import process_comment
-from visitors.node_processing.function_def_functions import get_function_id
+from visitors.node_processing.class_def_functions import get_class_id_context
+from visitors.node_processing.common_functions import process_comment, get_node_id
+from visitors.node_processing.function_def_functions import get_function_id_context
 from visitors.node_processing.module_functions import (
     get_footer_content,
     get_header_content,
@@ -46,6 +48,14 @@ class ModuleVisitor(BaseCodeBlockVisitor, libcst.CSTVisitor):
         self.model_builder: ModuleModelBuilder = self.model_builder
         self.visitor_manager: VisitorManager = visitor_manager
         self.metadata_wrapper: MetadataWrapper | None = None
+        self.class_id_generator = partial(
+            get_node_id,
+            node_type=BlockType.CLASS,
+        )
+        self.function_id_generator = partial(
+            get_node_id,
+            node_type=BlockType.FUNCTION,
+        )
 
     def visit_Module(self, node: libcst.Module) -> None:
         if not self.visitor_manager.has_been_processed(self.file_path, self.model_id):
@@ -68,38 +78,46 @@ class ModuleVisitor(BaseCodeBlockVisitor, libcst.CSTVisitor):
 
             for child in node.body:
                 if isinstance(child, libcst.ClassDef):
-                    class_id: str = get_class_id(
-                        child, self.model_id, self.visitor_manager
+                    class_id_context: dict[str, str] = get_class_id_context(
+                        child.name.value,
+                        self.model_id,
+                    )
+                    class_node_id: str = self.class_id_generator(
+                        context=class_id_context
                     )
 
                     if not self.visitor_manager.has_been_processed(
-                        self.file_path, class_id
+                        self.file_path, class_node_id
                     ):
                         class_name: str = child.name.value
                         class_visitor = ClassDefVisitor(
                             parent_id=self.model_id,
                             parent_visitor_instance=self,
                             class_name=class_name,
-                            class_id=class_id,
+                            class_id=class_node_id,
                             position_metadata=position_metadata,
                             module_code_content=content,
                         )
                         child.visit(class_visitor)
 
                 if isinstance(child, libcst.FunctionDef):
-                    function_id: str = get_function_id(
-                        child, self.model_id, self.visitor_manager
+                    function_id_context: dict[str, str] = get_function_id_context(
+                        child.name.value,
+                        self.model_id,
+                    )
+                    function_node_id: str = self.function_id_generator(
+                        context=function_id_context
                     )
 
                     if not self.visitor_manager.has_been_processed(
-                        self.file_path, function_id
+                        self.file_path, function_node_id
                     ):
                         function_name: str = child.name.value
                         class_visitor = FunctionDefVisitor(
                             parent_id=self.model_id,
                             parent_visitor_instance=self,
                             function_name=function_name,
-                            function_id=function_id,
+                            function_id=function_node_id,
                             position_metadata=position_metadata,
                             module_code_content=content,
                         )
