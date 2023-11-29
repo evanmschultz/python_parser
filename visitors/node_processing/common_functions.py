@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Callable, Mapping, Sequence
 import libcst
 from libcst.metadata import CodeRange
@@ -19,6 +18,7 @@ from id_generation.id_generation_strategies import (
 
 from models.models import CommentModel, DecoratorModel
 from models.enums import BlockType, CommentType
+from visitors.node_processing.processing_context import PositionData
 
 
 def get_node_id(node_type: BlockType, context: dict[str, str]) -> str:
@@ -50,12 +50,6 @@ def get_node_id(node_type: BlockType, context: dict[str, str]) -> str:
         raise ValueError(f"No strategy found for node type: {node_type}")
 
 
-@dataclass
-class PositionData:
-    start: int
-    end: int
-
-
 def get_node_position_data(
     node_name: str,
     position_metadata: Mapping[libcst.CSTNode, CodeRange],
@@ -80,7 +74,6 @@ def get_node_position_data(
         ) and item.name.value == node_name:
             start: int = position_metadata[item].start.line
             end: int = position_metadata[item].end.line
-
             return PositionData(start=start, end=end)
     raise Exception(
         "Class position data not found. Check logic in `get_and_set_class_position_data`!"
