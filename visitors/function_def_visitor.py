@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Mapping, Union
+from typing import TYPE_CHECKING, Any, Mapping, Union
 from functools import partial
 import libcst
 from libcst import CSTNode
@@ -25,6 +25,7 @@ from visitors.node_processing.function_def_functions import (
     get_function_id_context,
     get_function_position_data,
     get_parameters_list,
+    process_function_parameters,
 )
 from visitors.visitor_manager import VisitorManager
 
@@ -140,31 +141,13 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
 
     def visit_Parameters(self, node: libcst.Parameters) -> None:
         """Visits the parameters of a function definition and sets the model in the builder instance."""
+        parameter_list_content: dict[
+            str, ParameterModel | list[ParameterModel] | None
+        ] = process_function_parameters(node)
 
-        params: list[ParameterModel] | None = (
-            get_parameters_list(node.params) if node.params else None
-        )
-        kwonly_params: list[ParameterModel] | None = (
-            get_parameters_list(node.kwonly_params) if node.kwonly_params else None
-        )
-        posonly_params: list[ParameterModel] | None = (
-            get_parameters_list(node.posonly_params) if node.posonly_params else None
-        )
-        star_arg: ParameterModel | None = (
-            extract_star_parameter(node.star_arg)
-            if node.star_arg and isinstance(node.star_arg, libcst.Param)
-            else None
-        )
-        star_kwarg: ParameterModel | None = (
-            extract_star_parameter(node.star_kwarg) if node.star_kwarg else None
-        )
         self.model_builder.add_parameters_list(
             ParameterListModel(
-                params=params,
-                star_arg=star_arg,
-                kwonly_params=kwonly_params,
-                star_kwarg=star_kwarg,
-                posonly_params=posonly_params,
+                **parameter_list_content,  # type: ignore TODO: Fix type hinting error
             )
         )
 

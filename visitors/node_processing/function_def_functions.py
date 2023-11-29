@@ -118,3 +118,35 @@ def func_is_method(id: str) -> bool:
 def func_is_async(node: libcst.FunctionDef) -> bool:
     """Returns true if the function is async."""
     return True if node.asynchronous else False
+
+
+def process_function_parameters(
+    node: libcst.Parameters,
+) -> dict[str, ParameterModel | list[ParameterModel] | None]:
+    """Processes the parameters of a function."""
+
+    params: list[ParameterModel] | None = (
+        get_parameters_list(node.params) if node.params else None
+    )
+    kwonly_params: list[ParameterModel] | None = (
+        get_parameters_list(node.kwonly_params) if node.kwonly_params else None
+    )
+    posonly_params: list[ParameterModel] | None = (
+        get_parameters_list(node.posonly_params) if node.posonly_params else None
+    )
+    star_arg: ParameterModel | None = (
+        extract_star_parameter(node.star_arg)
+        if node.star_arg and isinstance(node.star_arg, libcst.Param)
+        else None
+    )
+    star_kwarg: ParameterModel | None = (
+        extract_star_parameter(node.star_kwarg) if node.star_kwarg else None
+    )
+
+    return {
+        "params": params,
+        "kwonly_params": kwonly_params,
+        "posonly_params": posonly_params,
+        "star_arg": star_arg,
+        "star_kwarg": star_kwarg,
+    }
