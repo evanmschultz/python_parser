@@ -144,37 +144,38 @@ class ClassDefVisitor(BaseCodeBlockVisitor):
                         )
                         child.visit(class_visitor)
 
-            class_name: str = self.model_builder.class_attributes.class_name
+        class_name: str = self.model_builder.class_attributes.class_name
+        print(f"Processing class: {class_name}")
 
-            docstring: str | None = node.get_docstring()
-            if docstring:
-                self.model_builder.set_docstring(docstring)
+        docstring: str | None = node.get_docstring()
+        if docstring:
+            self.model_builder.set_docstring(docstring)
 
-            position_data: PositionData = get_node_position_data(
-                class_name, self.position_metadata
-            )
-            code_content: str = extract_code_content(
-                self.module_code_content,
-                position_data.start,
-                position_data.end,
-            )
-            self.model_builder.set_block_start_line_number(
-                position_data.start
-            ).set_block_end_line_number(position_data.end)
+        position_data: PositionData = get_node_position_data(
+            class_name, self.position_metadata
+        )
+        code_content: str = extract_code_content(
+            self.module_code_content,
+            position_data.start,
+            position_data.end,
+        )
+        self.model_builder.set_block_start_line_number(
+            position_data.start
+        ).set_block_end_line_number(position_data.end)
 
-            code_content: str = extract_code_content(
-                self.module_code_content,
-                position_data.start,
-                position_data.end,
-            )
-            self.model_builder.set_code_content(code_content)
+        code_content: str = extract_code_content(
+            self.module_code_content,
+            position_data.start,
+            position_data.end,
+        )
+        self.model_builder.set_code_content(code_content)
 
-            decorator_list: list[DecoratorModel] = extract_decorators(node.decorators)
-            for decorator in decorator_list:
-                self.model_builder.add_decorator(decorator)
+        decorator_list: list[DecoratorModel] = extract_decorators(node.decorators)
+        for decorator in decorator_list:
+            self.model_builder.add_decorator(decorator)
 
-            get_and_set_class_bases(node.bases, self.model_builder)
-            get_and_set_class_keywords(node.keywords, self.model_builder)
+        get_and_set_class_bases(node.bases, self.model_builder)
+        get_and_set_class_keywords(node.keywords, self.model_builder)
 
     def visit_Comment(self, node: libcst.Comment) -> None:
         process_comment(node, self.model_builder)
