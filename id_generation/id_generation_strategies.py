@@ -32,7 +32,7 @@ class ModuleIDGenerationStrategy(IDGenerationStrategy):
         Returns:
             str: The generated ID.
         """
-        return f"{file_path}"
+        return f"{file_path}__>__MODULE"
 
 
 class ClassIDGenerationStrategy(IDGenerationStrategy):
@@ -49,7 +49,7 @@ class ClassIDGenerationStrategy(IDGenerationStrategy):
         Returns:
             str: The generated ID.
         """
-        return f"{parent_id}__>__{class_name}"
+        return f"{parent_id}__>__CLASS_{class_name}"
 
 
 class FunctionIDGenerationStrategy(IDGenerationStrategy):
@@ -66,7 +66,7 @@ class FunctionIDGenerationStrategy(IDGenerationStrategy):
         Returns:
             str: The generated ID.
         """
-        return f"{parent_id}__>__{function_name}"
+        return f"{parent_id}__>__FUNCTION_{function_name}"
 
 
 class StandaloneCodeBlockIDGenerationStrategy(IDGenerationStrategy):
@@ -82,4 +82,4 @@ class StandaloneCodeBlockIDGenerationStrategy(IDGenerationStrategy):
         Returns:
             str: The generated ID.
         """
-        return f"{parent_id}__>__{BlockType.STANDALONE_CODE_BLOCK}"
+        return f"{parent_id}__>__STANDALONE_CODE_BLOCK"
