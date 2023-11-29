@@ -24,10 +24,10 @@ class ModuleModelBuilder(BaseModelBuilder):
         )
 
         self.module_attributes = ModuleSpecificAttributes(
+            file_path=file_path,
             docstring=None,
             header=None,
             footer=None,
-            file_path=file_path,
         )
 
     def set_docstring(self, docstring: str | None) -> "ModuleModelBuilder":
@@ -52,7 +52,7 @@ class ModuleModelBuilder(BaseModelBuilder):
             self.module_attributes.footer.append(line)
         return self
 
-    def add_import(self, import_model) -> "ModuleModelBuilder":
+    def add_import(self, import_model: ImportModel) -> "ModuleModelBuilder":
         """Add an import."""
         if not self.common_attributes.dependencies:
             self.common_attributes.dependencies = []
