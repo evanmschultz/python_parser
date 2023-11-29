@@ -18,20 +18,15 @@ from models.models import (
     ParameterListModel,
 )
 from visitors.node_processing.function_def_functions import (
-    extract_and_process_return_annotation,
-    func_is_async,
-    func_is_method,
+    FunctionProcessingContext,
     get_function_id_context,
+    process_function,
     process_function_parameters,
 )
 from visitors.visitor_manager import VisitorManager
 
 from visitors.node_processing.common_functions import (
-    PositionData,
     get_node_id,
-    extract_code_content,
-    extract_decorators,
-    get_node_position_data,
     process_comment,
 )
 
@@ -40,7 +35,6 @@ if TYPE_CHECKING:
     from visitors.module_visitor import ModuleVisitor
 
     from models.models import (
-        DecoratorModel,
         ParameterModel,
     )
 
@@ -107,31 +101,16 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
                         )
                         child.visit(function_visitor)
 
-            function_name: str = self.model_builder.function_attributes.function_name
-            position_data: PositionData = get_node_position_data(
-                function_name, self.position_metadata
+        function_processing_context: FunctionProcessingContext = (
+            FunctionProcessingContext(
+                node_name=node.name.value,
+                node_id=self.model_id,
+                model_builder=self.model_builder,
+                position_metadata=self.position_metadata,
+                module_code_content=self.module_code_content,
             )
-            code_content: str = extract_code_content(
-                self.module_code_content,
-                position_data.start,
-                position_data.end,
-            )
-            decorator_list: list[DecoratorModel] = extract_decorators(node.decorators)
-            docstring: str | None = node.get_docstring()
-            return_annotation: str = extract_and_process_return_annotation(node.returns)
-            is_method: bool = func_is_method(node_id)
-            is_async: bool = func_is_async(node)
-
-            (
-                self.model_builder.set_docstring(docstring)
-                .set_decorator_list(decorator_list)
-                .set_is_method(is_method)
-                .set_return_annotation(return_annotation)
-                .set_code_content(code_content)
-                .set_block_start_line_number(position_data.start)
-                .set_block_end_line_number(position_data.end)
-                .set_is_async(is_async)  # type: ignore TODO: Fix type hinting error
-            )
+        )
+        process_function(node, function_processing_context)
 
     def visit_Parameters(self, node: libcst.Parameters) -> None:
         """Visits the parameters of a function definition and sets the model in the builder instance."""

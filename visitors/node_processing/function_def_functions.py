@@ -2,10 +2,79 @@ from typing import Sequence
 
 import libcst
 
-from models.enums import BlockType
-from models.models import ParameterModel
+from model_builders.function_model_builder import FunctionModelBuilder
 
-from visitors.node_processing.common_functions import extract_type_annotation
+from models.enums import BlockType
+from models.models import DecoratorModel, ParameterModel
+
+from visitors.node_processing.common_functions import (
+    extract_code_content,
+    extract_decorators,
+    extract_type_annotation,
+    get_node_position_data,
+)
+from visitors.node_processing.processing_context import (
+    FunctionBuilderSettingContext,
+    FunctionProcessingContext,
+    PositionData,
+)
+
+
+def process_function(
+    node: libcst.FunctionDef, context: FunctionProcessingContext
+) -> None:
+    """
+    Processes a function node and sets the corresponding data in the model builder.
+
+    Args:
+        node (libcst.FunctionDef): The function node to process.
+        context (FunctionProcessingContext): The context for function processing.
+
+    Returns:
+        None
+    """
+    position_data: PositionData = get_node_position_data(
+        context.node_name, context.position_metadata
+    )
+    code_content: str = extract_code_content(
+        context.module_code_content,
+        position_data.start,
+        position_data.end,
+    )
+    decorator_list: list[DecoratorModel] = extract_decorators(node.decorators)
+    docstring: str | None = node.get_docstring()
+    return_annotation: str = extract_and_process_return_annotation(node.returns)
+    is_method: bool = func_is_method(context.node_id)
+    is_async: bool = func_is_async(node)
+
+    set_function_data_in_builder(
+        model_builder=context.model_builder,
+        context=FunctionBuilderSettingContext(
+            docstring=docstring,
+            decorator_list=decorator_list,
+            is_method=is_method,
+            return_annotation=return_annotation,
+            code_content=code_content,
+            position_data=position_data,
+            is_async=is_async,
+        ),
+    )
+
+
+def set_function_data_in_builder(
+    model_builder: FunctionModelBuilder, context: FunctionBuilderSettingContext
+) -> None:
+    """Sets the function data in the builder instance."""
+    (
+        model_builder.set_docstring(context.docstring)
+        .set_decorator_list(context.decorator_list)
+        .set_is_method(context.is_method)
+        .set_return_annotation(context.return_annotation)
+        .set_code_content(context.code_content)
+        .set_block_start_line_number(context.position_data.start)
+        .set_block_end_line_number(context.position_data.end)
+        .set_is_async(context.is_async)  # type: ignore TODO: Fix type hinting error
+    )
 
 
 def get_parameters_list(
