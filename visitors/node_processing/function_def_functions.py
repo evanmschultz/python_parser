@@ -1,13 +1,11 @@
-from typing import Mapping, Sequence
+from typing import Sequence
 
 import libcst
-from libcst.metadata import CodeRange
 
 from models.enums import BlockType
 from models.models import ParameterModel
 
 from visitors.node_processing.common_functions import extract_type_annotation
-from visitors.visitor_manager import VisitorManager
 
 
 def get_parameters_list(
@@ -86,28 +84,6 @@ def get_function_id_context(
         "parent_id": parent_id,
         "function_name": function_name,
     }
-
-
-def get_function_position_data(
-    node_name: str,
-    position_metadata: Mapping[libcst.CSTNode, CodeRange],
-) -> dict[str, int]:
-    """Gets the start and end line numbers of a function."""
-    for item in position_metadata:
-        if (
-            type(item) is libcst.FunctionDef or type(item) is libcst.ClassDef
-        ) and item.name.value == node_name:
-            start: int = position_metadata[item].start.line
-            end: int = position_metadata[item].end.line
-
-            position_data: dict[str, int] = {
-                "start": start,
-                "end": end,
-            }
-            return position_data
-    raise Exception(
-        "Class position data not found. Check logic in `get_and_set_class_position_data`!"
-    )
 
 
 def func_is_method(id: str) -> bool:

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Union
+from typing import TYPE_CHECKING, Mapping, Union
 from functools import partial
 import libcst
 from libcst import CSTNode
@@ -19,20 +19,19 @@ from models.models import (
 )
 from visitors.node_processing.function_def_functions import (
     extract_and_process_return_annotation,
-    extract_star_parameter,
     func_is_async,
     func_is_method,
     get_function_id_context,
-    get_function_position_data,
-    get_parameters_list,
     process_function_parameters,
 )
 from visitors.visitor_manager import VisitorManager
 
 from visitors.node_processing.common_functions import (
+    PositionData,
     get_node_id,
     extract_code_content,
     extract_decorators,
+    get_node_position_data,
     process_comment,
 )
 
@@ -80,7 +79,6 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
 
     def visit_FunctionDef(self, node: libcst.FunctionDef) -> None:
         """Visits the function definition and recursively visits the children."""
-
         id_context: dict[str, str] = get_function_id_context(
             function_name=node.name.value,
             parent_id=self.parent_id,
@@ -110,17 +108,13 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
                         child.visit(function_visitor)
 
             function_name: str = self.model_builder.function_attributes.function_name
-            position_data: dict[str, int] = get_function_position_data(
+            position_data: PositionData = get_node_position_data(
                 function_name, self.position_metadata
-            )
-            start_line_number, end_line_number = (
-                position_data["start"],
-                position_data["end"],
             )
             code_content: str = extract_code_content(
                 self.module_code_content,
-                start_line_number,
-                end_line_number,
+                position_data.start,
+                position_data.end,
             )
             decorator_list: list[DecoratorModel] = extract_decorators(node.decorators)
             docstring: str | None = node.get_docstring()
@@ -134,8 +128,8 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
                 .set_is_method(is_method)
                 .set_return_annotation(return_annotation)
                 .set_code_content(code_content)
-                .set_block_start_line_number(start_line_number)
-                .set_block_end_line_number(end_line_number)
+                .set_block_start_line_number(position_data.start)
+                .set_block_end_line_number(position_data.end)
                 .set_is_async(is_async)  # type: ignore TODO: Fix type hinting error
             )
 

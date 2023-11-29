@@ -1,6 +1,8 @@
-from typing import Sequence
-from libcst import CSTNode, EmptyLine, Comment
+from dataclasses import dataclass
+from typing import Callable, Mapping, Sequence
 import libcst
+from libcst.metadata import CodeRange
+from libcst import CSTNode, EmptyLine, Comment
 
 from model_builders.class_model_builder import ClassModelBuilder
 from model_builders.function_model_builder import FunctionModelBuilder
@@ -19,21 +21,87 @@ from models.models import CommentModel, DecoratorModel
 from models.enums import BlockType, CommentType
 
 
-def get_node_id(node_type: BlockType, context: dict) -> str:
-    if node_type == BlockType.MODULE:
-        return ModuleIDGenerationStrategy.generate_id(**context)
-    elif node_type == BlockType.CLASS:
-        return ClassIDGenerationStrategy.generate_id(**context)
-    elif node_type == BlockType.FUNCTION:
-        return FunctionIDGenerationStrategy.generate_id(**context)
-    # TODO: StandAloneCodeBlock...
+def get_node_id(node_type: BlockType, context: dict[str, str]) -> str:
+    """
+    Generates a unique ID for a given node based on its type and context.
 
-    raise ValueError(f"Unsupported node type for ID generation: {node_type}")
+    Args:
+        node_type (BlockType): The type of the node (e.g., MODULE, CLASS, FUNCTION).
+        context (dict[str, str]): The context information used for ID generation.
+
+    Returns:
+        str: The generated unique ID for the node.
+
+    Raises:
+        ValueError: If no ID generation strategy is found for the given node type.
+    """
+
+    id_generation_strategies: dict[BlockType, Callable[..., str]] = {
+        BlockType.MODULE: ModuleIDGenerationStrategy.generate_id,
+        BlockType.CLASS: ClassIDGenerationStrategy.generate_id,
+        BlockType.FUNCTION: FunctionIDGenerationStrategy.generate_id,
+        # TODO: Add STANDALONE_CODE_BLOCK generation strategy
+    }
+
+    strategy_function = id_generation_strategies.get(node_type)
+    if strategy_function:
+        return strategy_function(**context)
+    else:
+        raise ValueError(f"No strategy found for node type: {node_type}")
+
+
+@dataclass
+class PositionData:
+    start: int
+    end: int
+
+
+def get_node_position_data(
+    node_name: str,
+    position_metadata: Mapping[libcst.CSTNode, CodeRange],
+) -> PositionData:
+    """
+    Retrieve the position data (start and end line numbers) for a given node name.
+
+    Args:
+        node_name (str): The name of the node to retrieve position data for.
+        position_metadata (Mapping[libcst.CSTNode, CodeRange]): A mapping of CSTNodes to CodeRanges.
+
+    Returns:
+        PositionData: An object containing the start and end line numbers of the node.
+
+    Raises:
+        Exception: If the position data for the class is not found.
+    """
+
+    for item in position_metadata:
+        if (
+            type(item) is libcst.FunctionDef or type(item) is libcst.ClassDef
+        ) and item.name.value == node_name:
+            start: int = position_metadata[item].start.line
+            end: int = position_metadata[item].end.line
+
+            return PositionData(start=start, end=end)
+    raise Exception(
+        "Class position data not found. Check logic in `get_and_set_class_position_data`!"
+    )
 
 
 def extract_code_content(
     module_content: str, start_line_num: int, end_line_num: int
 ) -> str:
+    """
+    Extracts the code content from a module based on the start and end line numbers.
+
+    Args:
+        module_content (str): The content of the module.
+        start_line_num (int): The line number where the code content starts.
+        end_line_num (int): The line number where the code content ends.
+
+    Returns:
+        str: The extracted code content.
+    """
+
     code_content_list: list[str] = module_content.split("\n")[
         start_line_num - 1 : end_line_num
     ]
@@ -49,6 +117,15 @@ def process_comment(
     | ModuleModelBuilder
     | StandaloneCodeBlockModelBuilder,
 ) -> None:
+    """
+    Processes a comment node and adds important comments to the model builder.
+
+    Args:
+        node (libcst.CSTNode): The comment node to process.
+        model_builder (ClassModelBuilder | FunctionModelBuilder | ModuleModelBuilder | StandaloneCodeBlockModelBuilder):
+            The model builder to add the important comments to.
+    """
+
     important_comment: CommentModel | None = extract_important_comment(node)
     if important_comment:
         model_builder.add_important_comment(important_comment)
@@ -57,6 +134,16 @@ def process_comment(
 def extract_important_comment(
     comment_or_empty_line_node: CSTNode,
 ) -> CommentModel | None:
+    """
+    Extracts an important comment from a comment or empty line node.
+
+    Args:
+        comment_or_empty_line_node (CSTNode): The comment or empty line node to extract the important comment from.
+
+    Returns:
+        CommentModel | None: The extracted important comment, or None if no important comment is found.
+    """
+
     if (
         isinstance(comment_or_empty_line_node, EmptyLine)
         and comment_or_empty_line_node.comment
@@ -80,25 +167,37 @@ def extract_important_comment(
 def extract_decorators(
     decorators: Sequence[libcst.Decorator],
 ) -> list[DecoratorModel]:
-    """Works for both class and function decorators"""
+    """
+    Extracts decorators from a sequence of decorator nodes.
 
+    Args:
+        decorators (Sequence[libcst.Decorator]): The sequence of decorator nodes.
+
+    Returns:
+        list[DecoratorModel]: The extracted decorator models.
+    """
     decorator_list: list[DecoratorModel] = []
 
     def extract_function_name_from_decorator(
         decorator: libcst.Decorator,
     ) -> str | None:
+        """Extracts the function name from a decorator."""
+
         if isinstance(decorator.decorator, libcst.Call):
             if isinstance(decorator.decorator.func, libcst.Name):
                 return decorator.decorator.func.value
         return None
 
     def extract_arguments_from_decorator(call: libcst.Call) -> list[str]:
+        """Extracts the arguments from a decorator."""
+
         def get_value_from_arg(arg) -> str:
             return str(arg.value.value)
 
         return [get_value_from_arg(arg) for arg in call.args]
 
     def process_decorator(decorator: libcst.Decorator) -> None:
+        """Processes a decorator and adds it to the decorator list."""
         func_name: str | None = extract_function_name_from_decorator(decorator)
         if func_name and isinstance(decorator.decorator, libcst.Call):
             args: list[str] = extract_arguments_from_decorator(decorator.decorator)
@@ -109,6 +208,7 @@ def extract_decorators(
             decorator_list.append(decorator_model)
 
     def handle_non_call_decorators(decorator: libcst.Decorator) -> None:
+        """Handles decorators that are not calls."""
         if isinstance(decorator.decorator, libcst.Name):
             decorator_model = DecoratorModel(decorator_name=decorator.decorator.value)
             decorator_list.append(decorator_model)
@@ -118,28 +218,30 @@ def extract_decorators(
             process_decorator(decorator)
         else:
             handle_non_call_decorators(decorator)
-
     return decorator_list
 
 
 def extract_type_annotation(node: libcst.CSTNode) -> str | None:
-    """Extract the type annotation from a node."""
+    """
+    Extracts the type annotation from a node.
+
+    Args:
+        node (libcst.CSTNode): The node to extract the type annotation from.
+
+    Returns:
+        str | None: The extracted type annotation, or None if no type annotation is found.
+    """
 
     def get_node_annotation(node: libcst.CSTNode) -> libcst.Annotation | None:
-        """Get the annotation from a node."""
-
-        if isinstance(node, libcst.Param):
-            return node.annotation
-        elif isinstance(node, libcst.AnnAssign):
+        """Retrieves the annotation of a given CSTNode."""
+        if isinstance(node, libcst.Param) or isinstance(node, libcst.AnnAssign):
             return node.annotation
         elif isinstance(node, libcst.Annotation):
             return node
-        else:
-            return None
+        return None
 
     def process_type_annotation_expression(expression: libcst.BaseExpression) -> str:
-        """Recursively process a type annotation expression."""
-
+        """Process the type annotation expression and return a string representation recursively."""
         if isinstance(expression, libcst.Subscript):
             return extract_generic_types_from_subscript(expression)
         elif isinstance(expression, libcst.BinaryOperation):
@@ -153,8 +255,7 @@ def extract_type_annotation(node: libcst.CSTNode) -> str | None:
     def extract_generic_types_from_subscript(
         node: libcst.Subscript | libcst.BaseExpression,
     ) -> str:
-        """Recursively extract generic types from a Subscript node."""
-
+        """Recursively extracts generic types from a Subscript node or a BaseExpression node."""
         if isinstance(node, libcst.Subscript):
             generics: list[str] = []
             for element in node.slice:
@@ -181,7 +282,6 @@ def extract_type_annotation(node: libcst.CSTNode) -> str | None:
         return ""
 
     annotation: libcst.Annotation | None = get_node_annotation(node)
-
     if annotation and isinstance(annotation, libcst.Annotation):
         return process_type_annotation_expression(annotation.annotation)
     return None

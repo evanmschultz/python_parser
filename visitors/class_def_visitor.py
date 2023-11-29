@@ -3,7 +3,7 @@
 from __future__ import annotations
 from functools import partial
 
-from typing import TYPE_CHECKING, Callable, Mapping, Union
+from typing import TYPE_CHECKING, Mapping, Union
 import libcst
 from libcst import CSTNode
 from libcst.metadata import CodeRange
@@ -20,17 +20,17 @@ from visitors.node_processing.class_def_functions import (
     get_and_set_class_bases,
     get_and_set_class_keywords,
     get_class_id_context,
-    get_class_position_data,
 )
 from visitors.node_processing.common_functions import (
+    PositionData,
     get_node_id,
+    get_node_position_data,
     extract_code_content,
     extract_decorators,
     process_comment,
 )
 from visitors.node_processing.function_def_functions import (
     get_function_id_context,
-    get_function_position_data,
 )
 
 from visitors.visitor_manager import VisitorManager
@@ -150,20 +150,24 @@ class ClassDefVisitor(BaseCodeBlockVisitor):
             if docstring:
                 self.model_builder.set_docstring(docstring)
 
-            position_data: dict[str, int] | None = get_function_position_data(
+            position_data: PositionData = get_node_position_data(
                 class_name, self.position_metadata
             )
-            if position_data:
-                self.model_builder.set_block_start_line_number(
-                    position_data["start"]
-                ).set_block_end_line_number(position_data["end"])
+            code_content: str = extract_code_content(
+                self.module_code_content,
+                position_data.start,
+                position_data.end,
+            )
+            self.model_builder.set_block_start_line_number(
+                position_data.start
+            ).set_block_end_line_number(position_data.end)
 
-                code_content: str = extract_code_content(
-                    self.module_code_content,
-                    position_data["start"],
-                    position_data["end"],
-                )
-                self.model_builder.set_code_content(code_content)
+            code_content: str = extract_code_content(
+                self.module_code_content,
+                position_data.start,
+                position_data.end,
+            )
+            self.model_builder.set_code_content(code_content)
 
             decorator_list: list[DecoratorModel] = extract_decorators(node.decorators)
             for decorator in decorator_list:
