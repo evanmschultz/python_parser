@@ -145,7 +145,6 @@ class ClassDefVisitor(BaseCodeBlockVisitor):
                         child.visit(class_visitor)
 
         class_name: str = self.model_builder.class_attributes.class_name
-        print(f"Processing class: {class_name}")
 
         docstring: str | None = node.get_docstring()
         if docstring:
