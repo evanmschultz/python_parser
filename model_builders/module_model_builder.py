@@ -25,7 +25,6 @@ class ModuleModelBuilder(BaseModelBuilder):
 
         self.module_attributes = ModuleSpecificAttributes(
             docstring=None,
-            imports=None,
             header=None,
             footer=None,
             file_path=file_path,
@@ -55,9 +54,9 @@ class ModuleModelBuilder(BaseModelBuilder):
 
     def add_import(self, import_model) -> "ModuleModelBuilder":
         """Add an import."""
-        if not self.module_attributes.imports:
-            self.module_attributes.imports = []
-        self.module_attributes.imports.append(import_model)
+        if not self.common_attributes.dependencies:
+            self.common_attributes.dependencies = []
+        self.common_attributes.dependencies.append(import_model)
         return self
 
     def _get_module_specific_attributes(self) -> dict[str, Any]:
