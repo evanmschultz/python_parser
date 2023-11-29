@@ -3,9 +3,7 @@ import libcst
 from libcst.metadata import CodeRange
 from model_builders.class_model_builder import ClassModelBuilder
 
-from models.enums import BlockType
 from models.models import ClassKeywordModel
-from visitors.visitor_manager import VisitorManager
 
 
 def get_class_id_context(
