@@ -1,6 +1,7 @@
 from typing import Callable, Mapping, Sequence
 import libcst
 from libcst.metadata import CodeRange
+from libcst._nodes.internal import CodegenState
 from libcst import CSTNode, EmptyLine, Comment
 
 from model_builders.class_model_builder import ClassModelBuilder
@@ -21,7 +22,7 @@ from models.enums import BlockType, CommentType
 from visitors.node_processing.processing_context import PositionData
 
 
-def get_node_id(node_type: BlockType, context: dict[str, str]) -> str:
+def get_node_id(*, node_type: BlockType, context: dict[str, str]) -> str:
     """
     Generates a unique ID for a given node based on its type and context.
 
@@ -67,11 +68,15 @@ def get_node_position_data(
     Raises:
         Exception: If the position data for the class is not found.
     """
-
+    # print(f"Getting position data for node: {node_name}")
     for item in position_metadata:
         if (
             type(item) is libcst.FunctionDef or type(item) is libcst.ClassDef
         ) and item.name.value == node_name:
+            if type(item) is libcst.FunctionDef and item.name.value == node_name:
+                # print(f"\nFound position data for node: {node_name}")
+                # print(f"Position data: {position_metadata[item]}")
+                ...
             start: int = position_metadata[item].start.line
             end: int = position_metadata[item].end.line
             return PositionData(start=start, end=end)
@@ -81,47 +86,43 @@ def get_node_position_data(
 
 
 def extract_code_content(
-    module_content: str, start_line_num: int, end_line_num: int
-) -> str:
-    """
-    Extracts the code content from a module based on the start and end line numbers.
-
-    Args:
-        module_content (str): The content of the module.
-        start_line_num (int): The line number where the code content starts.
-        end_line_num (int): The line number where the code content ends.
-
-    Returns:
-        str: The extracted code content.
-    """
-
-    code_content_list: list[str] = module_content.split("\n")[
-        start_line_num - 1 : end_line_num
-    ]
-    code_content: str = "\n".join(code_content_list)
-
-    return code_content
-
-
-def process_comment(
     node: libcst.CSTNode,
-    model_builder: ClassModelBuilder
-    | FunctionModelBuilder
-    | ModuleModelBuilder
-    | StandaloneCodeBlockModelBuilder,
-) -> None:
-    """
-    Processes a comment node and adds important comments to the model builder.
+) -> str:
+    state = CodegenState(default_indent="    ", default_newline="\n")
+    node._codegen(state=state)
 
-    Args:
-        node (libcst.CSTNode): The comment node to process.
-        model_builder (ClassModelBuilder | FunctionModelBuilder | ModuleModelBuilder | StandaloneCodeBlockModelBuilder):
-            The model builder to add the important comments to.
-    """
+    return "".join(state.tokens)
 
-    important_comment: CommentModel | None = extract_important_comment(node)
-    if important_comment:
-        model_builder.add_important_comment(important_comment)
+
+# def process_comment(
+#     node: libcst.CSTNode,
+#     model_builder: ClassModelBuilder
+#     | FunctionModelBuilder
+#     | ModuleModelBuilder
+#     | StandaloneCodeBlockModelBuilder,
+# ) -> None:
+#     """
+#     Processes a comment node and adds important comments to the model builder.
+
+#     Args:
+#         node (libcst.CSTNode): The comment node to process.
+#         model_builder (ClassModelBuilder | FunctionModelBuilder | ModuleModelBuilder | StandaloneCodeBlockModelBuilder):
+#             The model builder to add the important comments to.
+#     """
+
+#     important_comment: CommentModel | None = extract_important_comment(node)
+#     if important_comment:
+#         model_builder.add_important_comment(important_comment)
+
+
+def extract_important_comments(node: libcst.CSTNode) -> list[CommentModel]:
+    important_comments: list[CommentModel] = []
+    for child in node.children:
+        important_comment: CommentModel | None = extract_important_comment(child)
+        if important_comment:
+            important_comments.append(important_comment)
+
+    return important_comments
 
 
 def extract_important_comment(

@@ -43,7 +43,7 @@ class ClassKeywordModel(BaseModel):
     """Class representing a class keyword."""
 
     keyword_name: str
-    arg_value: str
+    args: list[str]
 
 
 class ParameterModel(BaseModel):

@@ -30,7 +30,9 @@ class PythonParser:
         module_id_context: dict[str, str] = {
             "file_path": self.file_path,
         }
-        self.module_id: str = get_node_id(BlockType.MODULE, module_id_context)
+        self.module_id: str = get_node_id(
+            node_type=BlockType.MODULE, context=module_id_context
+        )
 
         self.module_visitor = ModuleVisitor(
             file_path=file_path,

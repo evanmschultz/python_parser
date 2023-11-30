@@ -4,6 +4,7 @@ from id_generation.id_generation_strategies import (
     ModuleIDGenerationStrategy,
 )
 from models.enums import BlockType
+from visitors.node_processing.processing_context import PositionData
 
 
 class VisitorManager:
@@ -40,24 +41,25 @@ class VisitorManager:
     def __init__(self) -> None:
         if VisitorManager._instance:
             raise RuntimeError("VisitorManager instance already exists.")
-        self.processed_nodes: dict[str, set[str]] = {}  # {module_id: set(node_ids)}
+        self.processed_nodes: dict[str, set[str]] = {}
 
-    def has_been_processed(self, module_id: str, node_id: str) -> bool:
+    def has_been_processed(self, module_id: str, code_content: str) -> bool:
         """
         Checks if a node has already been processed in a given module.
 
         Args:
             module_id (str): Identifier of the module.
-            node_id (str): Unique identifier of the node.
+            position_data (str): PositionData instance as a unique identifier of the node.
 
         Returns:
             bool: True if the node has been processed, False otherwise.
         """
+        print(f"Checking if node has been processed: {code_content}")
         if module_id not in self.processed_nodes:
             self.processed_nodes[module_id] = set()
 
-        if node_id in self.processed_nodes[module_id]:
+        if code_content in self.processed_nodes[module_id]:
             return True
 
-        self.processed_nodes[module_id].add(node_id)
+        self.processed_nodes[module_id].add(code_content)
         return False

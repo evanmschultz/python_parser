@@ -85,7 +85,7 @@ class BaseModelBuilder(ABC):
             id=block_id,
             parent_id=parent_id,
             block_type=block_type,
-            block_start_line_number=1,
+            block_start_line_number=0,
             block_end_line_number=0,
             code_content="",
             important_comments=None,
@@ -104,7 +104,12 @@ class BaseModelBuilder(ABC):
         StandaloneCodeBlockModelBuilder,
     ]:
         """Sets the start line number of the code block model instance."""
-        self.common_attributes.block_start_line_number = line_number
+        if not self.common_attributes.block_start_line_number:
+            self.common_attributes.block_start_line_number = line_number
+        # else:
+        #     print(
+        #         f"Trying to set start line number again for {self.common_attributes.id}"
+        #     )
         return self
 
     def set_block_end_line_number(
@@ -117,7 +122,12 @@ class BaseModelBuilder(ABC):
         StandaloneCodeBlockModelBuilder,
     ]:
         """Sets the end line number of the code block model instance."""
-        self.common_attributes.block_end_line_number = line_number
+        if not self.common_attributes.block_end_line_number:
+            self.common_attributes.block_end_line_number = line_number
+        # else:
+        #     print(
+        #         f"Trying to set end line number again for {self.common_attributes.id}"
+        #     )
         return self
 
     def set_code_content(
@@ -130,7 +140,10 @@ class BaseModelBuilder(ABC):
         StandaloneCodeBlockModelBuilder,
     ]:
         """Adds the string containing the content of the code block to the model instance."""
-        self.common_attributes.code_content = code_content
+        if not self.common_attributes.code_content:
+            self.common_attributes.code_content = code_content
+        # else:
+        #     print(f"Trying to set code content again for {self.common_attributes.id}")
         return self
 
     def add_child(
@@ -149,8 +162,8 @@ class BaseModelBuilder(ABC):
         self.common_attributes.children.append(child)
         return self
 
-    def add_important_comment(
-        self, comment: CommentModel
+    def set_important_comments(
+        self, comment_list: list[CommentModel]
     ) -> Union[
         "BaseModelBuilder",
         ModuleModelBuilder,
@@ -159,9 +172,15 @@ class BaseModelBuilder(ABC):
         StandaloneCodeBlockModelBuilder,
     ]:
         """Adds an important comment to the model instance."""
+        print(
+            f"{self.common_attributes.id} builder important comments: {self.common_attributes.important_comments}"
+        )
         if not self.common_attributes.important_comments:
-            self.common_attributes.important_comments = []
-        self.common_attributes.important_comments.append(comment)
+            self.common_attributes.important_comments = comment_list
+        # else:
+        #     print(
+        #         f"Trying to set important comments again for {self.common_attributes.id}"
+        #     )
         return self
 
     def add_summary(
@@ -174,7 +193,10 @@ class BaseModelBuilder(ABC):
         StandaloneCodeBlockModelBuilder,
     ]:
         """Adds a summary to the model instance."""
-        self.common_attributes.summary = summary
+        if not self.common_attributes.summary:
+            self.common_attributes.summary = summary
+        # else:
+        #     print(f"Trying to set summary again for {self.common_attributes.id}")
         return self
 
     def _get_common_attributes(self) -> dict[str, Any]:

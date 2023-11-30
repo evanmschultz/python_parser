@@ -45,18 +45,16 @@ class ClassModelBuilder(BaseModelBuilder):
         self.class_attributes.class_name = class_name
         return self
 
-    def add_decorator(self, decorator: DecoratorModel) -> "ClassModelBuilder":
-        """Adds a decorator to the class model."""
-        if not self.class_attributes.decorators:
-            self.class_attributes.decorators = []
-        self.class_attributes.decorators.append(decorator)
+    def set_decorator_list(
+        self, decorator_list: list[DecoratorModel]
+    ) -> "ClassModelBuilder":
+        """Sets the list of decorators in the function model."""
+        self.class_attributes.decorators = decorator_list
         return self
 
-    def add_base_class(self, base_class: str) -> "ClassModelBuilder":
-        """Adds a base class to the class model."""
-        if not self.class_attributes.base_classes:
-            self.class_attributes.base_classes = []
-        self.class_attributes.base_classes.append(base_class)
+    def set_base_class_list(self, base_classes: list[str]) -> "ClassModelBuilder":
+        """Sets the list of base classes to the class model."""
+        self.class_attributes.base_classes = base_classes
         return self
 
     def set_class_type(self, class_type: ClassType) -> "ClassModelBuilder":
@@ -78,11 +76,12 @@ class ClassModelBuilder(BaseModelBuilder):
         self.class_attributes.attributes.append(attribute)
         return self
 
-    def add_keyword(self, keyword: ClassKeywordModel) -> "ClassModelBuilder":
-        """Adds a keyword of the class in the model."""
-        if not self.class_attributes.keywords:
-            self.class_attributes.keywords = []
-        self.class_attributes.keywords.append(keyword)
+    def set_keywords(
+        self, keyword_list: list[ClassKeywordModel] | None
+    ) -> "ClassModelBuilder":
+        """Sets the list of keywords to the class model."""
+        if keyword_list:
+            self.class_attributes.keywords = keyword_list
         return self
 
     def _get_class_specific_attributes(self) -> dict[str, Any]:

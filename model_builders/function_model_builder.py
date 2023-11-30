@@ -29,8 +29,8 @@ class FunctionModelBuilder(BaseModelBuilder):
         set_function_name(function_name: str) -> "FunctionModelBuilder":
             Sets the name of the function in the model instance.
 
-        add_decorator(decorator: DecoratorModel) -> "FunctionModelBuilder":
-            Adds a decorator to the function model instance.
+        set_decorator_list(decorator_list: list[DecoratorModel]) -> "FunctionModelBuilder":
+            Sets the list of decorators in the function model instance.
 
         set_docstring(docstring: str | None) -> "FunctionModelBuilder":
             Sets the docstring for the function model instance.
@@ -82,47 +82,86 @@ class FunctionModelBuilder(BaseModelBuilder):
     def set_decorator_list(
         self, decorator_list: list[DecoratorModel]
     ) -> "FunctionModelBuilder":
-        """Adds a decorator to the function model."""
-        self.function_attributes.decorators = decorator_list
+        """Sets the list of decorators in the function model."""
+        if not self.function_attributes.decorators:
+            self.function_attributes.decorators = decorator_list
+        # else:
+        #     print(
+        #         f"Trying to set decorators again for {self.function_attributes.function_name}"
+        #     )
         return self
 
     def set_docstring(self, docstring: str | None) -> "FunctionModelBuilder":
         """Sets the docstring."""
-        if docstring:
+        if not self.function_attributes.docstring:
             self.function_attributes.docstring = docstring
+        # else:
+        #     print(
+        #         f"Trying to set docstring again for {self.function_attributes.function_name}"
+        #     )
         return self
 
     def add_parameters_list(
         self, parameter_list_model: ParameterListModel
     ) -> "FunctionModelBuilder":
         """Adds a parameter to the function model."""
-        self.function_attributes.parameters = parameter_list_model
+        if not self.function_attributes.parameters:
+            self.function_attributes.parameters = parameter_list_model
+        # else:
+        #     print(
+        #         f"Trying to set parameters again for {self.function_attributes.function_name}"
+        #     )
         return self
 
     def set_return_annotation(self, return_type: str) -> "FunctionModelBuilder":
         """Sets the return type."""
-        self.function_attributes.returns = return_type
+        if not self.function_attributes.returns:
+            self.function_attributes.returns = return_type
+        # else:
+        #     print(
+        #         f"Trying to set return type again for {self.function_attributes.function_name}"
+        #     )
         return self
 
-    def set_is_method(self, is_method) -> "FunctionModelBuilder":
+    def set_is_method(self, is_method: bool) -> "FunctionModelBuilder":
         """Sets the is_method attribute in the function model."""
-        self.function_attributes.is_method = is_method
+        if not self.function_attributes.is_method:
+            self.function_attributes.is_method = is_method
+        # else:
+        #     print(
+        #         f"Trying to set is_method again for {self.function_attributes.function_name}"
+        #     )
         return self
 
-    def set_method_type(self, method_type) -> "FunctionModelBuilder":
+    def set_method_type(self, method_type: MethodType) -> "FunctionModelBuilder":
         ...
 
     def set_is_async(self, is_async: bool) -> "FunctionModelBuilder":
         """Sets the is_async attribute in the function model."""
-        self.function_attributes.is_async = is_async
+        if not self.function_attributes.is_async:
+            self.function_attributes.is_async = is_async
+        # else:
+        #     print(
+        #         f"Trying to set is_async again for {self.function_attributes.function_name}"
+        #     )
         return self
 
     def _get_function_specific_attributes(self) -> dict[str, Any]:
-        """Gets the function specific attributes from the builder."""
+        """
+        Gets the function specific attributes from the builder.
+        """
+        # Using `id(self)` to get a unique identifier for the instance
+        # print(
+        #     f"FunctionModelBuilder Instance: {self}, ID: {id(self)}, Function Name: {self.function_attributes.function_name}"
+        # )
+
         return self.function_attributes.model_dump()
 
     def _create_model_instance(self) -> FunctionModel:
         """Creates the function model instance with the common and function specific attributes."""
+        # print(
+        #     f"FunctionModelBuilder Common Attributes from `_create_model_instance`: {self.common_attributes}"
+        # )
         return FunctionModel(
             **self._get_common_attributes(),
             **self._get_function_specific_attributes(),

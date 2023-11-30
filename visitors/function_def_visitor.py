@@ -14,6 +14,7 @@ from models.enums import BlockType
 from visitors.base_code_block_visitor import BaseCodeBlockVisitor
 
 from models.models import (
+    CommentModel,
     FunctionModel,
     ParameterListModel,
 )
@@ -23,11 +24,15 @@ from visitors.node_processing.function_def_functions import (
     process_function,
     process_function_parameters,
 )
+from visitors.node_processing.processing_context import PositionData
 from visitors.visitor_manager import VisitorManager
 
 from visitors.node_processing.common_functions import (
+    extract_code_content,
+    extract_important_comment,
+    extract_important_comments,
     get_node_id,
-    process_comment,
+    get_node_position_data,
 )
 
 if TYPE_CHECKING:
@@ -48,6 +53,7 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
         ],
         function_name: str,
         function_id: str,
+        module_id: str,
         position_metadata: Mapping[CSTNode, CodeRange],
         module_code_content: str,
     ) -> None:
@@ -57,10 +63,11 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
                 function_name=function_name,
                 function_id=function_id,
             ),
-            file_path=parent_visitor_instance.file_path,
             parent_visitor_instance=parent_visitor_instance,
             model_id=function_id,
         )
+        self.function_id: str = function_id
+        self.module_id: str = module_id
         self.parent_id: str = parent_id
         self.model_builder: FunctionModelBuilder = self.model_builder
         self.visitor_manager: VisitorManager = VisitorManager.get_instance()
@@ -70,47 +77,73 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
             get_node_id,
             node_type=BlockType.FUNCTION,
         )
+        self.important_comments: list[CommentModel] = []
 
     def visit_FunctionDef(self, node: libcst.FunctionDef) -> None:
         """Visits the function definition and recursively visits the children."""
-        id_context: dict[str, str] = get_function_id_context(
+        node_id_context: dict[str, str] = get_function_id_context(
             function_name=node.name.value,
-            parent_id=self.parent_id,
+            parent_id=self.model_id,
         )
-        node_id: str = self.node_id_generator(context=id_context)
+        function_node_id: str = self.node_id_generator(context=node_id_context)
+        print(f"\nVisiting function: {node.name.value}")
 
-        if not self.visitor_manager.has_been_processed(self.file_path, node_id):
-            for child in node.body.body:
-                if isinstance(child, libcst.FunctionDef):
-                    child_id_context: dict[str, str] = get_function_id_context(
-                        function_name=child.name.value,
-                        parent_id=self.model_id,
-                    )
-                    function_node_id: str = self.node_id_generator(child_id_context)
-
-                    if not self.visitor_manager.has_been_processed(
-                        self.file_path, function_node_id
-                    ):
-                        function_visitor = FunctionDefVisitor(
-                            parent_id=self.model_id,
-                            parent_visitor_instance=self,
-                            function_name=child.name.value,
-                            function_id=function_node_id,
-                            position_metadata=self.position_metadata,
-                            module_code_content=self.module_code_content,
-                        )
-                        child.visit(function_visitor)
+        node_position_data: PositionData = get_node_position_data(
+            node.name.value, self.position_metadata
+        )
+        code_content: str = extract_code_content(node)
 
         function_processing_context: FunctionProcessingContext = (
             FunctionProcessingContext(
                 node_name=node.name.value,
                 node_id=self.model_id,
                 model_builder=self.model_builder,
-                position_metadata=self.position_metadata,
-                module_code_content=self.module_code_content,
+                position_data=node_position_data,
+                code_content=code_content,
             )
         )
         process_function(node, function_processing_context)
+
+        for child in node.body.body:
+            if isinstance(child, libcst.FunctionDef):
+                print(f"For loop: {child.name.value}")
+                child_id_context: dict[str, str] = get_function_id_context(
+                    function_name=child.name.value,
+                    parent_id=self.model_id,
+                )
+                function_node_id: str = self.node_id_generator(context=child_id_context)
+                child_position_data: PositionData = get_node_position_data(
+                    node.name.value, self.position_metadata
+                )
+                child_code_content: str = extract_code_content(child)
+                function_processing_context: FunctionProcessingContext = (
+                    FunctionProcessingContext(
+                        node_name=node.name.value,
+                        node_id=self.model_id,
+                        model_builder=self.model_builder,
+                        position_data=child_position_data,
+                        code_content=child_code_content,
+                    )
+                )
+                has_been_processed: bool = self.visitor_manager.has_been_processed(
+                    self.module_id, child_code_content
+                )
+                print(
+                    f"Child {child.name.value} has been processed: {has_been_processed}"
+                )
+
+                if not has_been_processed:
+                    print(f"Passed conditional: {child.name.value}")
+                    function_visitor = FunctionDefVisitor(
+                        parent_id=self.model_id,
+                        parent_visitor_instance=self,
+                        function_name=child.name.value,
+                        function_id=function_node_id,
+                        module_id=self.module_id,
+                        position_metadata=self.position_metadata,
+                        module_code_content=self.module_code_content,
+                    )
+                    child.visit(function_visitor)
 
     def visit_Parameters(self, node: libcst.Parameters) -> None:
         """Visits the parameters of a function definition and sets the model in the builder instance."""
@@ -126,12 +159,28 @@ class FunctionDefVisitor(BaseCodeBlockVisitor):
 
     def visit_Comment(self, node: libcst.Comment) -> None:
         """Visits the comment of a function definition and sets the model in the builder instance."""
-        process_comment(node, self.model_builder)
+        import_comment: CommentModel | None = extract_important_comment(node)
+        if import_comment:
+            self.important_comments.append(import_comment)
+        print(
+            f"{self.model_builder.common_attributes.id} visitor important comments: {self.important_comments}"
+        )
 
     def leave_FunctionDef(self, original_node: libcst.FunctionDef) -> None:
         """Builds the function model and adds it to the parent visitor instance."""
+        self.model_builder.set_important_comments(self.important_comments)
+        print(f"Function {self.model_builder.common_attributes.id} comments: ")
+        for comment in self.important_comments:
+            print("\t", comment)
+
         for child in self.children:
             self.model_builder.add_child(child)
         if self.not_added_to_parent_visitor(self.model_id):
             built_model: FunctionModel = self.model_builder.build()  # type: ignore
-            self.add_child_to_parent_visitor(built_model)
+            # print(
+            #     f"\n\n\n\nAdding Built Model to ModuleVisitor from FunctionDefVisitor: {built_model}\n\n\n"
+            # )
+            self.add_built_model_to_parent_visitor(built_model)
+        # print(
+        #     f"\nParent's {self.parent_visitor_instance.model_id} children printed from function visitor {self.function_id}: \n\n{self.parent_visitor_instance.children}"
+        # )

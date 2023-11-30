@@ -33,35 +33,29 @@ def process_function(
     Returns:
         None
     """
-    position_data: PositionData = get_node_position_data(
-        context.node_name, context.position_metadata
-    )
-    code_content: str = extract_code_content(
-        context.module_code_content,
-        position_data.start,
-        position_data.end,
-    )
+    print(f"\nProcessing function: {node.name.value}\n")
+
     decorator_list: list[DecoratorModel] = extract_decorators(node.decorators)
     docstring: str | None = node.get_docstring()
     return_annotation: str = extract_and_process_return_annotation(node.returns)
     is_method: bool = func_is_method(context.node_id)
     is_async: bool = func_is_async(node)
 
-    set_function_data_in_builder(
+    set_data_in_function_builder(
         model_builder=context.model_builder,
         context=FunctionBuilderSettingContext(
             docstring=docstring,
             decorator_list=decorator_list,
             is_method=is_method,
             return_annotation=return_annotation,
-            code_content=code_content,
-            position_data=position_data,
+            code_content=context.code_content,
+            position_data=context.position_data,
             is_async=is_async,
         ),
     )
 
 
-def set_function_data_in_builder(
+def set_data_in_function_builder(
     model_builder: FunctionModelBuilder, context: FunctionBuilderSettingContext
 ) -> None:
     """Sets the function data in the builder instance."""

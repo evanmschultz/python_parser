@@ -8,7 +8,7 @@ from model_builders.function_model_builder import FunctionModelBuilder
 from models.models import DecoratorModel
 
 
-@dataclass
+@dataclass(frozen=True)
 class PositionData:
     start: int
     end: int
@@ -19,8 +19,8 @@ class FunctionProcessingContext:
     node_name: str
     node_id: str
     model_builder: FunctionModelBuilder
-    position_metadata: Mapping[libcst.CSTNode, CodeRange]
-    module_code_content: str
+    position_data: PositionData
+    code_content: str
 
 
 @dataclass

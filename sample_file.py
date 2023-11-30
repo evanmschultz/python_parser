@@ -21,11 +21,25 @@ some_variable = "Global Variable"
 
 # Function Definitions
 @abs(123, "er\n")
-def simple_function(param1: str, param2: int):
+def simple_function(param1: str, param2: int) -> str:
     """
     A simple function
     """
-    # NOTE: Sample NOTE
+
+    def nested_function() -> None:
+        ...
+
+        def nested_nested_function():
+            ...
+
+            # NOTE: Sample NOTE
+            def nested_nested_nested_function():
+                # TODO: Sample TODO
+                ...
+
+    # NOTE: Sample `simple_func` NOTE
+
+    # NOTE: Sample `simple_func` NOTE
     return param1 + str(param2)
 
 
@@ -61,6 +75,10 @@ class SampleClass(metaclass=type("MyMeta")):
         returns:
             str: Sample return value
         """
+
+        def nested_method():
+            ...
+
         return self.attribute1 + param1
 
     # Sample class method
@@ -116,6 +134,24 @@ async def async_example(name, delay):
     await asyncio.sleep(delay)
     print(f"Task {name}: Completed after {delay} seconds")
     return f"Result of Task {name}"
+
+
+class KeywordSampleClass(
+    metaclass=type("MyMeta"),  # Metaclass example
+    size=10,  # Simple Name and Integer Arguments
+    message="Hello, World!",  # String Arguments
+    position=Point(2, 3),  # Function Call with Multiple Arguments
+    color=rgb(red(), green(0.5), blue(255)),  # Nested Function Calls
+    config=setup(mode="auto", retries=3),  # Function Call with Keyword Arguments
+    coordinates_list=[10, [20, 30]],  # List as an Argument
+    coordinates_tuple=(10, 20, 30),  # Tuple as an Argument
+    options={"verbose": True, "timeout": 120},  # Dictionary as an Argument
+    calculation=(a + b) * (c - d) / e,  # Complex Expression
+    filter_function=lambda x: x > 0,  # Lambda Function
+    active=True,  # Boolean Value
+    target=None,  # None Value
+):
+    ...
 
 
 if __name__ == "__main__":

@@ -34,7 +34,6 @@ class BaseCodeBlockVisitor(libcst.CSTVisitor, ABC):
     to track processed nodes.
 
     Attributes:
-        file_path (str): File path of the module being visited.
         model_builder (BaseModelBuilder): Builder for the code block model.
         id (str): Identifier of the visitor.
         parent_visitor_instance (BaseCodeBlockVisitor): Reference to the parent visitor instance.
@@ -49,13 +48,11 @@ class BaseCodeBlockVisitor(libcst.CSTVisitor, ABC):
             "ModuleModelBuilder",
             "StandaloneCodeBlockModelBuilder",
         ],
-        file_path: str,
         model_id: str,
         parent_visitor_instance: Union[
             "ClassDefVisitor", "FunctionDefVisitor", "ModuleVisitor", None
         ] = None,
     ) -> None:
-        self.file_path: str = file_path
         self.model_builder: Union[
             "ClassModelBuilder",
             "FunctionModelBuilder",
@@ -75,11 +72,11 @@ class BaseCodeBlockVisitor(libcst.CSTVisitor, ABC):
         else:
             raise Exception("Parent visitor instance not set.")
 
-    def add_child_to_parent_visitor(
-        self, child_model: ClassModel | FunctionModel | StandaloneCodeBlockModel
+    def add_built_model_to_parent_visitor(
+        self, built_model: ClassModel | FunctionModel | StandaloneCodeBlockModel
     ) -> None:
         if self.parent_visitor_instance:
-            self.parent_visitor_instance.children.append(child_model)
+            self.parent_visitor_instance.children.append(built_model)
 
-            if child_model.id:
-                self.parent_visitor_instance.children_ids_set.add(child_model.id)
+            if built_model.id:
+                self.parent_visitor_instance.children_ids_set.add(built_model.id)
