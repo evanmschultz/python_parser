@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import json
 from typing import Any, Callable, Union
 
 import libcst
@@ -11,142 +10,367 @@ from id_generation.id_generation_strategies import (
     ModuleIDGenerationStrategy,
 )
 
-from models.enums import BlockType
+from models.enums import BlockType, ClassType, MethodType
+from models.models import (
+    BaseCodeBlockModel,
+    ClassKeywordModel,
+    ClassModel,
+    ClassSpecificAttributes,
+    CommentModel,
+    DecoratorModel,
+    FunctionModel,
+    FunctionSpecificAttributes,
+    ImportModel,
+    ModuleModel,
+    ModuleSpecificAttributes,
+    ParameterListModel,
+)
 
 
-class BaseModelBuilder:
-    def add_information(self, name, node_type):
-        pass
-
-    def build(self):
-        return {}
-
-
-class ClassModelBuilder(BaseModelBuilder):
-    pass
-
-
-class FunctionModelBuilder(BaseModelBuilder):
-    pass
-
-
-class ModuleModelBuilder(BaseModelBuilder):
-    pass
-
-
-ModelBuilderType = Union[ModuleModelBuilder, ClassModelBuilder, FunctionModelBuilder]
-
-
-class BaseBridge(ABC):
-    def __init__(self, id: str) -> None:
+class BaseModelBuilder(ABC):
+    def __init__(
+        self, *, id: str, block_type: BlockType, parent_id: str | None
+    ) -> None:
         self.id: str = id
-        self.children: list[BridgeType] = []
-        self.comments: list[str] = []
+        self.children_builders: list[ChildrenBuilderType] = []
 
-        self.block_type: BlockType
-        self.builder: ModelBuilderType
-
-    def add_child(self, child) -> None:
-        self.children.append(child)
+        self.common_attributes = BaseCodeBlockModel(
+            id=id,
+            parent_id=parent_id,
+            block_type=block_type,
+            block_start_line_number=0,
+            block_end_line_number=0,
+            code_content="",
+            important_comments=None,
+            children=[],
+            dependencies=None,
+            summary=None,
+        )
 
     def add_comment(self, comment):
-        self.comments.append(comment)
+        if not self.common_attributes.important_comments:
+            self.common_attributes.important_comments = []
+        self.common_attributes.important_comments.append(comment)
+
+    def set_block_start_line_number(
+        self, line_number: int
+    ) -> Union[
+        "BaseModelBuilder",
+        "ModuleModelBuilder",
+        "ClassModelBuilder",
+        "FunctionModelBuilder",
+    ]:
+        """Sets the start line number of the code block model instance."""
+        self.common_attributes.block_start_line_number = line_number
+        return self
+
+    def set_block_end_line_number(
+        self, line_number: int
+    ) -> Union[
+        "BaseModelBuilder",
+        "ModuleModelBuilder",
+        "ClassModelBuilder",
+        "FunctionModelBuilder",
+    ]:
+        """Sets the end line number of the code block model instance."""
+        self.common_attributes.block_end_line_number = line_number
+        return self
+
+    def set_code_content(
+        self, code_content: str
+    ) -> Union[
+        "BaseModelBuilder",
+        "ModuleModelBuilder",
+        "ClassModelBuilder",
+        "FunctionModelBuilder",
+    ]:
+        """Adds the string containing the content of the code block to the model instance."""
+        self.common_attributes.code_content = code_content
+        return self
+
+    def set_important_comments(
+        self, comment_list: list[CommentModel]
+    ) -> Union[
+        "BaseModelBuilder",
+        "ModuleModelBuilder",
+        "ClassModelBuilder",
+        "FunctionModelBuilder",
+    ]:
+        """Adds an important comment to the model instance."""
+        self.common_attributes.important_comments = comment_list
+        return self
+
+    def add_summary(
+        self, summary
+    ) -> Union[
+        "BaseModelBuilder",
+        "ModuleModelBuilder",
+        "ClassModelBuilder",
+        "FunctionModelBuilder",
+    ]:
+        """Adds a summary to the model instance."""
+        return self
+
+    def add_child(
+        self, child: Union["ClassModelBuilder", "FunctionModelBuilder"]
+    ) -> Union[
+        "BaseModelBuilder",
+        "ModuleModelBuilder",
+        "ClassModelBuilder",
+        "FunctionModelBuilder",
+    ]:
+        """Adds a child code block to the model instance."""
+        self.children_builders.append(child)  # type: ignore # TODO: Remove type ignore when stand alone code block model is added
+        return self
+
+    def build_and_set_children(self) -> None:
+        self.common_attributes.children = [
+            child.build() for child in self.children_builders
+        ]
+
+    def _get_common_attributes(self) -> dict[str, Any]:
+        """
+        Returns a dictionary containing the attributes common to all code block models.
+        """
+        print(self.common_attributes.children)
+        return self.common_attributes.model_dump()
 
     @abstractmethod
-    def call_build_model(self) -> dict[str, str | list | dict]:
+    def build(
+        self,
+    ) -> None:
+        """
+        Builds and returns the code block model instance.
+
+        Returns:
+            CodeBlockModel: The built code block model instance.
+        """
         ...
 
 
-class ModuleBridge(BaseBridge):
-    def __init__(self, id: str) -> None:
-        super().__init__(id)
+class ModuleModelBuilder(BaseModelBuilder):
+    def __init__(self, id: str, file_path: str) -> None:
+        super().__init__(id=id, block_type=BlockType.MODULE, parent_id=None)
 
-        self.block_type = BlockType.MODULE
-        self.builder = ModuleModelBuilder()
+        self.module_attributes = ModuleSpecificAttributes(
+            file_path=file_path,
+            docstring=None,
+            header=None,
+            footer=None,
+        )
 
-    def call_build_model(self) -> dict[str, str | list | dict]:
-        return {
-            "id": self.id,
-            "block_type": self.block_type.name,
-            "children": [child.call_build_model() for child in self.children],
-            "comments": self.comments,
-        }
+    def set_docstring(self, docstring: str | None) -> "ModuleModelBuilder":
+        """Set the docstring."""
+        if docstring:
+            self.module_attributes.docstring = docstring
+        return self
 
+    def set_header_content(self, header_content: list[str]) -> "ModuleModelBuilder":
+        """Set the header."""
+        if not self.module_attributes.header:
+            self.module_attributes.header = []
+        for line in header_content:
+            self.module_attributes.header.append(line)
+        return self
 
-class ClassBridge(BaseBridge):
-    def __init__(self, id: str, class_name: str) -> None:
-        super().__init__(id)
+    def set_footer_content(self, footer_content: list[str]) -> "ModuleModelBuilder":
+        """Set the footer."""
+        if not self.module_attributes.footer:
+            self.module_attributes.footer = []
+        for line in footer_content:
+            self.module_attributes.footer.append(line)
+        return self
 
-        self.class_name: str = class_name
-        self.block_type = BlockType.CLASS
-        self.builder = ClassModelBuilder()
+    def add_import(self, import_model: ImportModel) -> "ModuleModelBuilder":
+        """Add an import to the dependencies list."""
+        if not self.common_attributes.dependencies:
+            self.common_attributes.dependencies = []
+        self.common_attributes.dependencies.append(import_model)
+        return self
 
-    def call_build_model(self) -> dict[str, str | list | dict]:
-        return {
-            "id": self.id,
-            "class_name": self.class_name,
-            "block_type": self.block_type.name,
-            "children": [child.call_build_model() for child in self.children],
-            "comments": self.comments,
-        }
+    def _get_module_specific_attributes(self) -> dict[str, Any]:
+        """Get the module specific attributes."""
+        return self.module_attributes.model_dump()
 
-
-class FunctionBridge(BaseBridge):
-    def __init__(self, id: str, function_name: str) -> None:
-        super().__init__(id)
-
-        self.function_name: str = function_name
-        self.params: dict[str, str] = {}
-        self.block_type = BlockType.FUNCTION
-        self.builder = FunctionModelBuilder()
-
-    def add_param(self, param_name, param_info) -> None:
-        self.params[param_name] = param_info
-
-    def call_build_model(self) -> dict[str, str | list | dict]:
-        return {
-            "id": self.id,
-            "function_name": self.function_name,
-            "block_type": self.block_type.name,
-            "children": [child.call_build_model() for child in self.children],
-            "comments": self.comments,
-            "params": self.params,
-        }
+    def build(self) -> ModuleModel:
+        """Builds and returns the module model instance."""
+        self.build_and_set_children()
+        return ModuleModel(
+            **self._get_common_attributes(), **self._get_module_specific_attributes()
+        )
 
 
-BridgeType = Union[ModuleBridge, ClassBridge, FunctionBridge]
+class ClassModelBuilder(BaseModelBuilder):
+    def __init__(self, id: str, class_name: str, parent_id: str) -> None:
+        super().__init__(id=id, block_type=BlockType.CLASS, parent_id=parent_id)
+
+        self.class_attributes = ClassSpecificAttributes(
+            class_name=class_name,
+            decorators=None,
+            base_classes=None,
+            class_type=ClassType.STANDARD,
+            docstring=None,
+            attributes=None,
+            keywords=None,
+        )
+
+    def set_decorator_list(
+        self, decorator_list: list[DecoratorModel]
+    ) -> "ClassModelBuilder":
+        """Sets the list of decorators in the function model."""
+        self.class_attributes.decorators = decorator_list
+        return self
+
+    def set_base_class_list(self, base_classes: list[str]) -> "ClassModelBuilder":
+        """Sets the list of base classes to the class model."""
+        self.class_attributes.base_classes = base_classes
+        return self
+
+    def set_class_type(self, class_type: ClassType) -> "ClassModelBuilder":
+        """Sets the type of the class in the model."""
+        self.class_attributes.class_type = class_type
+        return self
+
+    def set_docstring(self, docstring: str | None) -> "ClassModelBuilder":
+        """Sets the docstring of the class in the model."""
+        self.class_attributes.docstring = docstring
+        return self
+
+    # TODO: Add attribute model
+    def add_attribute(self, attribute) -> "ClassModelBuilder":
+        """Adds an attribute of the class in the model."""
+        if not self.class_attributes.attributes:
+            self.class_attributes.attributes = []
+        self.class_attributes.attributes.append(attribute)
+        return self
+
+    def set_keywords(
+        self, keyword_list: list[ClassKeywordModel] | None
+    ) -> "ClassModelBuilder":
+        """Sets the list of keywords to the class model."""
+        self.class_attributes.keywords = keyword_list
+        return self
+
+    def _get_class_specific_attributes(self) -> dict[str, Any]:
+        """Gets the class specific attributes."""
+        return self.class_attributes.model_dump()
+
+    def build(self) -> ClassModel:
+        """Creates a ClassModel instance."""
+        self.build_and_set_children()
+        return ClassModel(
+            **self._get_common_attributes(),
+            **self._get_class_specific_attributes(),
+        )
 
 
-class BridgeFactory:
+class FunctionModelBuilder(BaseModelBuilder):
+    def __init__(self, id: str, function_name: str, parent_id: str) -> None:
+        super().__init__(
+            id=id,
+            block_type=BlockType.FUNCTION,
+            parent_id=parent_id,
+        )
+        self.function_attributes = FunctionSpecificAttributes(
+            function_name=function_name,
+            docstring=None,
+            decorators=None,
+            parameters=None,
+            is_method=False,
+            method_type=None,
+            is_async=False,
+            returns=None,
+        )
+
+    def set_parameters_list(
+        self, parameter_list_model: ParameterListModel
+    ) -> "FunctionModelBuilder":
+        """Adds a parameter to the function model."""
+        self.function_attributes.parameters = parameter_list_model
+        return self
+
+    def set_decorator_list(
+        self, decorator_list: list[DecoratorModel]
+    ) -> "FunctionModelBuilder":
+        """Sets the list of decorators in the function model."""
+        self.function_attributes.decorators = decorator_list
+        return self
+
+    def set_docstring(self, docstring: str | None) -> "FunctionModelBuilder":
+        """Sets the docstring."""
+        self.function_attributes.docstring = docstring
+        return self
+
+    def set_return_annotation(self, return_type: str) -> "FunctionModelBuilder":
+        """Sets the return type."""
+        self.function_attributes.returns = return_type
+        return self
+
+    def set_is_method(self, is_method: bool) -> "FunctionModelBuilder":
+        """Sets the is_method attribute in the function model."""
+        self.function_attributes.is_method = is_method
+        return self
+
+    def set_method_type(self, method_type: MethodType) -> "FunctionModelBuilder":
+        ...
+
+    def set_is_async(self, is_async: bool) -> "FunctionModelBuilder":
+        """Sets the is_async attribute in the function model."""
+        self.function_attributes.is_async = is_async
+        return self
+
+    def _get_function_specific_attributes(self) -> dict[str, Any]:
+        """
+        Gets the function specific attributes from the builder.
+        """
+        return self.function_attributes.model_dump()
+
+    def build(self) -> FunctionModel:
+        """Builds and returns the function model instance."""
+        self.build_and_set_children()
+        return FunctionModel(
+            **self._get_common_attributes(),
+            **self._get_function_specific_attributes(),
+        )
+
+
+BuilderType = Union[ModuleModelBuilder, ClassModelBuilder, FunctionModelBuilder]
+ChildrenBuilderType = Union[ClassModelBuilder, FunctionModelBuilder]
+
+
+class BuilderFactory:
     _creation_strategies: dict[BlockType, Callable[..., Any]] = {
-        BlockType.MODULE: lambda file_path, name=None, parent_id=None: ModuleBridge(
+        BlockType.MODULE: lambda file_path, name=None, parent_id=None: ModuleModelBuilder(
             id=ModuleIDGenerationStrategy.generate_id(file_path=file_path),
+            file_path=file_path,
         ),
-        BlockType.CLASS: lambda name, parent_id, file_path=None: ClassBridge(
-            class_name=name,
+        BlockType.CLASS: lambda name, parent_id, file_path=None: ClassModelBuilder(
             id=ClassIDGenerationStrategy.generate_id(
                 parent_id=parent_id, class_name=name
             ),
+            class_name=name,
+            parent_id=parent_id,
         ),
-        BlockType.FUNCTION: lambda name, parent_id, file_path=None: FunctionBridge(
-            function_name=name,
+        BlockType.FUNCTION: lambda name, parent_id, file_path=None: FunctionModelBuilder(
             id=FunctionIDGenerationStrategy.generate_id(
                 parent_id=parent_id, function_name=name
             ),
+            function_name=name,
+            parent_id=parent_id,
         ),
     }
 
     @staticmethod
-    def create_bridge_instance(
+    def create_builder_instance(
         *,
         block_type: BlockType,
         name: str | None = None,
         parent_id: str | None = None,
         file_path: str | None = None,
-    ) -> Union[ModuleBridge, ClassBridge, FunctionBridge]:
-        if block_type not in BridgeFactory._creation_strategies:
+    ) -> Union[ModuleModelBuilder, ClassModelBuilder, FunctionModelBuilder]:
+        if block_type not in BuilderFactory._creation_strategies:
             raise ValueError(f"Unknown node type: {block_type}")
-        return BridgeFactory._creation_strategies[block_type](
+        return BuilderFactory._creation_strategies[block_type](
             name=name, parent_id=parent_id, file_path=file_path
         )
 
@@ -154,7 +378,7 @@ class BridgeFactory:
 class BaseVisitor(libcst.CSTVisitor):
     def __init__(self, id: str) -> None:
         self.id: str = id
-        self.stack: list[BridgeType] = []
+        self.stack: list[BuilderType] = []
 
     def extract_code_content(
         self,
@@ -167,60 +391,55 @@ class BaseVisitor(libcst.CSTVisitor):
 
 
 class ModuleVisitor(BaseVisitor):
-    def __init__(self, id: str, module_bridge: ModuleBridge) -> None:
+    def __init__(self, id: str, module_builder: ModuleModelBuilder) -> None:
         super().__init__(id)
-        self.module_bridge: ModuleBridge = module_bridge
-        self.stack.append(module_bridge)
+        self.module_builder: ModuleModelBuilder = module_builder
+        self.stack.append(module_builder)
 
     def visit_ClassDef(self, node: libcst.ClassDef) -> None:
-        class_bridge: ClassBridge = BridgeFactory.create_bridge_instance(
+        class_builder: ClassModelBuilder = BuilderFactory.create_builder_instance(
             block_type=BlockType.CLASS,
             name=node.name.value,
             parent_id=self.stack[-1].id,
         )  # type: ignore
-        self.stack[-1].add_child(class_bridge)
-        self.stack.append(class_bridge)
+        parent_builder: BuilderType = self.stack[-1]
+        parent_builder.add_child(class_builder)
+        self.stack.append(class_builder)
 
     def leave_ClassDef(self, original_node: libcst.ClassDef) -> None:
         self.stack.pop()
 
     def visit_FunctionDef(self, node: libcst.FunctionDef) -> None:
-        func_bridge: FunctionBridge = BridgeFactory.create_bridge_instance(
+        func_builder: FunctionModelBuilder = BuilderFactory.create_builder_instance(
             block_type=BlockType.FUNCTION,
             name=node.name.value,
             parent_id=self.stack[-1].id,
         )  # type: ignore
-        self.stack[-1].add_child(func_bridge)
-        self.stack.append(func_bridge)
+        parent_builder: BuilderType = self.stack[-1]
+        parent_builder.add_child(func_builder)
+        self.stack.append(func_builder)
 
     def leave_FunctionDef(self, original_node: libcst.FunctionDef) -> None:
         self.stack.pop()
 
-    def visit_Comment(self, node: libcst.Comment) -> None:
-        parent_node = self.stack[-1]
-        content = self.extract_code_content(node)
-        parent_node.add_comment(content)
-
-    def visit_Parameters(self, node: libcst.Param) -> None:
-        parent_node_bridge = self.stack[-1]
-
-        if isinstance(parent_node_bridge, FunctionBridge):
-            param_info: str = self.extract_code_content(node)
-            parent_node_bridge.add_param("parameters", param_info)
+    # def visit_Comment(self, node: libcst.Comment) -> None:
+    #     parent_node = self.stack[-1]
+    #     content: str = self.extract_code_content(node)
+    #     parent_node.add_comment(content)
 
 
 # Parse and Print Hierarchy Function
 def parse_and_print_hierarchy(file_path, code) -> None:
     tree: libcst.Module = libcst.parse_module(code)
-    module_bridge: ModuleBridge = BridgeFactory.create_bridge_instance(
+    module_builder: ModuleModelBuilder = BuilderFactory.create_builder_instance(
         block_type=BlockType.MODULE, file_path=file_path
     )  # type: ignore
 
-    module_id: str = module_bridge.id
-    visitor = ModuleVisitor(id=module_id, module_bridge=module_bridge)
+    module_id: str = module_builder.id
+    visitor = ModuleVisitor(id=module_id, module_builder=module_builder)
     tree.visit(visitor)
     hierarchy = visitor.stack[0]  # NOTE: This is the stack referred to in the TODO
-    print(json.dumps(hierarchy.call_build_model(), indent=4))
+    print(print(hierarchy.build().model_dump_json(indent=4)))
 
 
 # Example usage
@@ -233,13 +452,9 @@ class MyClass:
         def nested_method(self, param1, param2: int, param3: str = "default"):
             # This is a comment
             ...
+            
+def function1():
+    pass
 """
 
 parse_and_print_hierarchy("./ex_path", code)
-
-# TODO: Implement the list comprehension logic in the base builder class
-# TODO: Add BridgeFactory to the project
-# TODO: Update the BaseVisitor class to use the BridgeFactory and stack
-# TODO: Update the ModuleVisitor class to use the BridgeFactory
-# TODO: Update the module visitor to have all the logic from the old visitor classes
-# TODO: Update the parser to call the stack
