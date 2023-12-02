@@ -68,8 +68,8 @@ class BaseCodeBlockModel(BaseModel):
     id: str | None = None
     parent_id: str | None = None
     block_type: BlockType
-    block_start_line_number: int
-    block_end_line_number: int
+    start_line_num: int
+    end_line_num: int
     code_content: str
     important_comments: list[CommentModel] | None = None
     dependencies: list[ImportModel] | None = None
