@@ -9,19 +9,8 @@ from model_builders.base_model_builder import BaseModelBuilder
 
 
 class ModuleModelBuilder(BaseModelBuilder):
-    """
-    Class for building a module model. Uses the builder pattern to allow for construction the model step-by-step.
-
-    params:
-        file_path (str): The file path of the module.
-    """
-
-    def __init__(self, file_path: str, module_id: str) -> None:
-        super().__init__(
-            parent_id=None,
-            block_type=BlockType.MODULE,
-            block_id=module_id,
-        )
+    def __init__(self, id: str, file_path: str) -> None:
+        super().__init__(id=id, block_type=BlockType.MODULE, parent_id=None)
 
         self.module_attributes = ModuleSpecificAttributes(
             file_path=file_path,
@@ -53,7 +42,7 @@ class ModuleModelBuilder(BaseModelBuilder):
         return self
 
     def add_import(self, import_model: ImportModel) -> "ModuleModelBuilder":
-        """Add an import."""
+        """Add an import to the dependencies list."""
         if not self.common_attributes.dependencies:
             self.common_attributes.dependencies = []
         self.common_attributes.dependencies.append(import_model)
@@ -63,8 +52,9 @@ class ModuleModelBuilder(BaseModelBuilder):
         """Get the module specific attributes."""
         return self.module_attributes.model_dump()
 
-    def _create_model_instance(self) -> ModuleModel:
-        """Create a ModuleModel instance."""
+    def build(self) -> ModuleModel:
+        """Builds and returns the module model instance."""
+        self.build_and_set_children()
         return ModuleModel(
             **self._get_common_attributes(), **self._get_module_specific_attributes()
         )
