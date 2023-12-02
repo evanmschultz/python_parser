@@ -29,14 +29,15 @@ class CommentModel(BaseModel):
     """Class representing a comment."""
 
     content: str
-    comment_type: CommentType
+    comment_types: list[CommentType]
 
 
 class DecoratorModel(BaseModel):
     """Class representing a decorator."""
 
-    decorator_name: str
-    decorator_args: list[str] | None = None
+    content: str
+    # decorator_name: str
+    # decorator_args: list[str] | None = None
 
 
 class ClassKeywordModel(BaseModel):
