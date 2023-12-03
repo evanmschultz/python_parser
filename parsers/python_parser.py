@@ -6,8 +6,6 @@ from model_builders.module_model_builder import ModuleModelBuilder
 
 from models.models import ModuleModel
 from visitors.module_visitor import ModuleVisitor
-from visitors.node_processing.common_functions import get_node_id
-from visitors.visitor_manager import VisitorManager
 from models.enums import BlockType
 
 
