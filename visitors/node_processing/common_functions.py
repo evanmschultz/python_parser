@@ -1,7 +1,5 @@
-from typing import Callable, Mapping
+from typing import Callable
 import libcst
-from libcst.metadata import CodeRange
-from libcst._nodes.internal import CodegenState
 
 from id_generation.id_generation_strategies import (
     ClassIDGenerationStrategy,
@@ -11,7 +9,6 @@ from id_generation.id_generation_strategies import (
 
 from models.models import CommentModel
 from models.enums import BlockType, CommentType
-from visitors.node_processing.processing_context import PositionData
 
 
 def get_node_id(*, node_type: BlockType, context: dict[str, str]) -> str:
@@ -43,47 +40,16 @@ def get_node_id(*, node_type: BlockType, context: dict[str, str]) -> str:
         raise ValueError(f"No strategy found for node type: {node_type}")
 
 
-def get_node_position_data(
-    node_name: str,
-    position_metadata: Mapping[libcst.CSTNode, CodeRange],
-) -> PositionData:
-    """
-    Retrieve the position data (start and end line numbers) for a given node name.
-
-    Args:
-        node_name (str): The name of the node to retrieve position data for.
-        position_metadata (Mapping[libcst.CSTNode, CodeRange]): A mapping of CSTNodes to CodeRanges.
-
-    Returns:
-        PositionData: An object containing the start and end line numbers of the node.
-
-    Raises:
-        Exception: If the position data for the class is not found.
-    """
-    # print(f"Getting position data for node: {node_name}")
-    for item in position_metadata:
-        if (
-            type(item) is libcst.FunctionDef or type(item) is libcst.ClassDef
-        ) and item.name.value == node_name:
-            if type(item) is libcst.FunctionDef and item.name.value == node_name:
-                # print(f"\nFound position data for node: {node_name}")
-                # print(f"Position data: {position_metadata[item]}")
-                ...
-            start: int = position_metadata[item].start.line
-            end: int = position_metadata[item].end.line
-            return PositionData(start=start, end=end)
-    raise Exception(
-        "Class position data not found. Check logic in `get_and_set_class_position_data`!"
-    )
-
-
 def extract_code_content(
     node: libcst.CSTNode,
 ) -> str:
-    state = CodegenState(default_indent="    ", default_newline="\n")
-    node._codegen(state=state)
+    return libcst.Module([]).code_for_node(node)
 
-    return "".join(state.tokens)
+
+def extract_stripped_code_content(
+    node: libcst.CSTNode,
+) -> str:
+    return extract_code_content(node).strip()
 
 
 def extract_important_comment(

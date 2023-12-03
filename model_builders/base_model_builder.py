@@ -44,8 +44,8 @@ class BaseModelBuilder(ABC):
             self.common_attributes.important_comments = []
         self.common_attributes.important_comments.append(comment)
 
-    def set_block_start_line_number(
-        self, line_number: int
+    def set_start_line_num(
+        self, line_num: int
     ) -> Union[
         "BaseModelBuilder",
         "ModuleModelBuilder",
@@ -53,11 +53,11 @@ class BaseModelBuilder(ABC):
         "FunctionModelBuilder",
     ]:
         """Sets the start line number of the code block model instance."""
-        self.common_attributes.start_line_num = line_number
+        self.common_attributes.start_line_num = line_num
         return self
 
-    def set_block_end_line_number(
-        self, line_number: int
+    def set_end_line_num(
+        self, line_num: int
     ) -> Union[
         "BaseModelBuilder",
         "ModuleModelBuilder",
@@ -65,7 +65,7 @@ class BaseModelBuilder(ABC):
         "FunctionModelBuilder",
     ]:
         """Sets the end line number of the code block model instance."""
-        self.common_attributes.end_line_num = line_number
+        self.common_attributes.end_line_num = line_num
         return self
 
     def set_code_content(

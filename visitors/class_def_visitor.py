@@ -112,8 +112,8 @@ class ClassDefVisitor(BaseCodeBlockVisitor):
         )
 
         (
-            self.model_builder.set_block_start_line_number(position_data.start)
-            .set_block_end_line_number(position_data.end)
+            self.model_builder.set_start_line_num(position_data.start)
+            .set_end_line_num(position_data.end)
             .set_code_content(code_content)
             .set_decorator_list(decorator_list)  # type: ignore
             .set_base_class_list(base_classes)  # type: ignore

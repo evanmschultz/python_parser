@@ -1,160 +1,170 @@
-from functools import partial
-from typing import Mapping
+from typing import Union
 
 import libcst
-from libcst import CSTNode, MetadataWrapper
-from libcst.metadata import WhitespaceInclusivePositionProvider, CodeRange
-from models.enums import BlockType
-from models.models import CommentModel
+from libcst.metadata import (
+    WhitespaceInclusivePositionProvider,
+    CodeRange,
+)
+from libcst._metadata_dependent import _UNDEFINED_DEFAULT
 
-from visitors.base_code_block_visitor import BaseCodeBlockVisitor
+
+from id_generation.id_generation_strategies import (
+    ClassIDGenerationStrategy,
+    FunctionIDGenerationStrategy,
+)
+from model_builders.builder_factory import BuilderFactory
+from model_builders.class_model_builder import ClassModelBuilder
+from model_builders.function_model_builder import FunctionModelBuilder
 from model_builders.module_model_builder import ModuleModelBuilder
-from visitors.class_def_visitor import ClassDefVisitor
-from visitors.function_def_visitor import FunctionDefVisitor
-from visitors.node_processing.class_def_functions import get_class_id_context
+
+from models.enums import BlockType
+from models.models import (
+    CommentModel,
+    DecoratorModel,
+    ImportModel,
+    ParameterListModel,
+)
 from visitors.node_processing.common_functions import (
     extract_code_content,
-    extract_important_comments,
-    get_node_position_data,
-    get_node_id,
+    extract_important_comment,
 )
-from visitors.node_processing.function_def_functions import get_function_id_context
+from visitors.node_processing.function_def_functions import (
+    process_func_def,
+    process_parameters,
+)
 from visitors.node_processing.module_functions import (
-    get_footer_content,
-    get_header_content,
+    extract_content_from_empty_lines,
     process_import,
     process_import_from,
 )
 from visitors.node_processing.processing_context import PositionData
-from visitors.visitor_manager import VisitorManager
 
 
-class ModuleVisitor(BaseCodeBlockVisitor, libcst.CSTVisitor):
-    """
-    Visitor for processing Module nodes in the AST.
+BuilderType = Union[ModuleModelBuilder, ClassModelBuilder, FunctionModelBuilder]
 
-    This visitor processes each Module node and delegates processing of child nodes
-    like class definitions to specific visitors.
 
-    Args:
-        file_path (str): File path of the module being visited.
-        parent_visitor_instance (BaseCodeBlockVisitor): Reference to the parent visitor instance.
-    """
+class BaseVisitor(libcst.CSTVisitor):
+    METADATA_DEPENDENCIES: tuple[type[WhitespaceInclusivePositionProvider]] = (
+        WhitespaceInclusivePositionProvider,
+    )
 
-    def __init__(
+    def __init__(self, id: str) -> None:
+        self.id: str = id
+        self.builder_stack: list[BuilderType] = []
+
+    def visit_Comment(self, node: libcst.Comment) -> None:
+        parent_builder = self.builder_stack[-1]
+        content: CommentModel | None = extract_important_comment(node)
+        if content:
+            parent_builder.add_important_comment(content)
+
+    def get_node_position_data(
         self,
-        file_path: str,
-        visitor_manager: VisitorManager,
-        model_id: str,
-    ) -> None:
-        super().__init__(
-            model_builder=ModuleModelBuilder(file_path=file_path, module_id=model_id),
-            model_id=model_id,
-        )
-        self.file_path: str = file_path
-        self.model_builder: ModuleModelBuilder = self.model_builder
-        self.visitor_manager: VisitorManager = visitor_manager
-        self.metadata_wrapper: MetadataWrapper | None = None
-        self.class_id_generator = partial(
-            get_node_id,
-            node_type=BlockType.CLASS,
-        )
-        self.function_id_generator = partial(
-            get_node_id,
-            node_type=BlockType.FUNCTION,
+        node: libcst.CSTNode,
+    ) -> PositionData:
+        position_data: CodeRange | type[_UNDEFINED_DEFAULT] = self.get_metadata(
+            WhitespaceInclusivePositionProvider, node
         )
 
-    def visit_Module(self, node: libcst.Module) -> None:
-        self.metadata_wrapper = MetadataWrapper(node)
-        position_metadata: Mapping[CSTNode, CodeRange] = self.metadata_wrapper.resolve(
-            WhitespaceInclusivePositionProvider
-        )
+        start, end = 0, 0
+        if isinstance(position_data, CodeRange):
+            start: int = position_data.start.line
+            end: int = position_data.end.line
+        return PositionData(start=start, end=end)
 
-        content: str = node.code
+
+class ModuleVisitor(BaseVisitor):
+    def __init__(self, id: str, module_builder: ModuleModelBuilder) -> None:
+        super().__init__(id)
+        self.builder: ModuleModelBuilder = module_builder
+        self.builder_stack.append(module_builder)
+
+    def visit_Module(self, node: libcst.Module) -> bool | None:
         docstring: str | None = node.get_docstring()
-        header_content: list[str] = get_header_content(node.header)
-        footer_content: list[str] = get_footer_content(node.footer)
+        header: list[str] = extract_content_from_empty_lines(node.header)
+        footer: list[str] = extract_content_from_empty_lines(node.footer)
+        content: str = node.code if node.code else ""
 
         (
-            self.model_builder.set_header_content(header_content)  # type: ignore
-            .set_footer_content(footer_content)
+            self.builder.set_docstring(docstring)
+            .set_header_content(header)
+            .set_footer_content(footer)
             .set_code_content(content)
-            .set_docstring(docstring)  # type: ignore
         )
-        important_comments: list[CommentModel] = extract_important_comments(node)
-        self.model_builder.set_important_comments(important_comments)
-
-        for child in node.body:
-            if isinstance(child, libcst.ClassDef):
-                class_id_context: dict[str, str] = get_class_id_context(
-                    child.name.value,
-                    self.model_id,
-                )
-                class_node_id: str = self.class_id_generator(context=class_id_context)
-                # child_class_position_data: PositionData = get_node_position_data(
-                #     child.name.value, position_metadata
-                # )
-                class_code_content: str = extract_code_content(child)
-
-                if not self.visitor_manager.has_been_processed(
-                    self.model_id, class_code_content
-                ):
-                    class_name: str = child.name.value
-                    class_visitor = ClassDefVisitor(
-                        parent_id=self.model_id,
-                        parent_visitor_instance=self,
-                        class_name=class_name,
-                        module_id=self.model_id,
-                        class_id=class_node_id,
-                        position_metadata=position_metadata,
-                        module_code_content=content,
-                    )
-                    child.visit(class_visitor)
-
-            if isinstance(child, libcst.FunctionDef):
-                function_id_context: dict[str, str] = get_function_id_context(
-                    child.name.value,
-                    self.model_id,
-                )
-                function_node_id: str = self.function_id_generator(
-                    context=function_id_context
-                )
-
-                # child_function_position_data: PositionData = get_node_position_data(
-                #     child.name.value, position_metadata
-                # )
-                function_code_content: str = extract_code_content(child)
-
-                if not self.visitor_manager.has_been_processed(
-                    self.model_id, function_code_content
-                ):
-                    function_name: str = child.name.value
-                    class_visitor = FunctionDefVisitor(
-                        parent_id=self.model_id,
-                        parent_visitor_instance=self,
-                        function_name=function_name,
-                        function_id=function_node_id,
-                        module_id=self.model_id,
-                        position_metadata=position_metadata,
-                        module_code_content=content,
-                    )
-                    child.visit(class_visitor)
 
     def visit_Import(self, node: libcst.Import) -> None:
-        process_import(node, self.model_builder)
+        import_model: ImportModel = process_import(node)
+        self.builder.add_import(import_model)
 
     def visit_ImportFrom(self, node: libcst.ImportFrom) -> None:
-        process_import_from(node, self.model_builder)
+        import_model: ImportModel = process_import_from(node)
+        self.builder.add_import(import_model)
 
-    # def visit_Comment(self, node: libcst.Comment) -> None:
-    #     process_comment(node, self.model_builder)
+    def visit_ClassDef(self, node: libcst.ClassDef) -> None:
+        parent_id: str = self.builder_stack[-1].id
+        class_id: str = ClassIDGenerationStrategy.generate_id(
+            parent_id=parent_id, class_name=node.name.value
+        )
 
-    def leave_Module(self, original_node: libcst.Module) -> None:
-        # print(f"\nModule children printed from module visitor: {self.children}\n")
-        for child in self.children:
-            if child.block_type == BlockType.FUNCTION:
-                ...
-                # print(
-                #     f"\nAdding function {child.function_name} to module {child.block_start_line_number}\n"
-                # )
-            self.model_builder.add_child(child)
+        class_builder: ClassModelBuilder = BuilderFactory.create_builder_instance(
+            block_type=BlockType.CLASS,
+            name=node.name.value,
+            parent_id=parent_id,
+        )
+
+        parent_builder: BuilderType = self.builder_stack[-1]
+        parent_builder.add_child(class_builder)
+        self.builder_stack.append(class_builder)
+
+        docstring: str | None = node.get_docstring()
+        code_content: str = extract_code_content(node)
+        position_data: PositionData = self.get_node_position_data(node)
+        (
+            class_builder.set_docstring(docstring)
+            .set_code_content(code_content)
+            .set_start_line_num(position_data.start)
+            .set_end_line_num(position_data.end)
+        )
+
+    def leave_ClassDef(self, original_node: libcst.ClassDef) -> None:
+        self.builder_stack.pop()
+
+    def visit_FunctionDef(self, node: libcst.FunctionDef) -> None:
+        parent_id: str = self.builder_stack[-1].id
+        func_id: str = FunctionIDGenerationStrategy.generate_id(
+            parent_id=parent_id, function_name=node.name.value
+        )
+
+        func_builder: FunctionModelBuilder = BuilderFactory.create_builder_instance(
+            block_type=BlockType.FUNCTION,
+            name=node.name.value,
+            parent_id=parent_id,
+        )
+        parent_builder: BuilderType = self.builder_stack[-1]
+        parent_builder.add_child(func_builder)
+        self.builder_stack.append(func_builder)
+
+        position_data: PositionData = self.get_node_position_data(node)
+        process_func_def(func_id, node, position_data, func_builder)
+
+    def visit_Decorator(self, node: libcst.Decorator) -> bool | None:
+        parent_builder = self.builder_stack[-1]
+        if (
+            type(parent_builder) == FunctionModelBuilder
+            or type(parent_builder) == ClassModelBuilder
+        ):
+            decorator: DecoratorModel = DecoratorModel(
+                content=extract_code_content(node)
+            )
+            parent_builder.add_decorator(decorator)
+        return True
+
+    def visit_Parameters(self, node: libcst.Parameters) -> None:
+        builder = self.builder_stack[-1]
+        parameter_list: ParameterListModel = process_parameters(node)
+
+        if isinstance(builder, FunctionModelBuilder):
+            builder.set_parameters_list(parameter_list)
+
+    def leave_FunctionDef(self, original_node: libcst.FunctionDef) -> None:
+        self.builder_stack.pop()

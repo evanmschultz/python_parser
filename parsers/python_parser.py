@@ -1,5 +1,8 @@
 import libcst
 from libcst.metadata import MetadataWrapper
+from id_generation.id_generation_strategies import ModuleIDGenerationStrategy
+from model_builders.builder_factory import BuilderFactory
+from model_builders.module_model_builder import ModuleModelBuilder
 
 from models.models import ModuleModel
 from visitors.module_visitor import ModuleVisitor
@@ -10,56 +13,51 @@ from models.enums import BlockType
 
 class PythonParser:
     """
-    A class that represents a Python parser meant to parse a python file.
+    A class that represents a Python parser.
 
     Attributes:
         file_path (str): The path to the Python file to be parsed.
-        visitor_manager (VisitorManager): The visitor manager instance.
-        module_id (str): The ID of the module.
-        module_visitor (ModuleVisitor): The module visitor instance.
-        metadata_repository (MetadataRepository): The metadata repository instance.
 
-    Methods:
-        parse(): Parses the content of a file and returns a ModuleModel object representing the parsed module.
+    Example:
+        parser = PythonParser("./sample_file.py")
+        code: str = parser.open_file()
+        module_model: ModuleModel | None = parser.parse(code)
     """
 
     def __init__(self, file_path: str) -> None:
         self.file_path: str = file_path
-        self.visitor_manager: VisitorManager = VisitorManager.get_instance()
 
-        module_id_context: dict[str, str] = {
-            "file_path": self.file_path,
-        }
-        self.module_id: str = get_node_id(
-            node_type=BlockType.MODULE, context=module_id_context
-        )
+    def open_file(self) -> str:
+        """Opens and reads the file specified by the file path and returns the code as a string."""
+        with open(self.file_path, "r") as file:
+            return file.read()
 
-        self.module_visitor = ModuleVisitor(
-            file_path=file_path,
-            visitor_manager=self.visitor_manager,
-            model_id=self.module_id,
-        )
-
-    def parse(self) -> ModuleModel | None:
+    def parse(self, code: str) -> ModuleModel | None:
         """
-        Parses the content of a file and returns a ModuleModel object representing the parsed module.
+        Parses the given Python code and returns a module model.
+
+        Args:
+            code (str): The Python code to be parsed.
 
         Returns:
-            ModuleModel | None: The parsed module as a ModuleModel object, or None if parsing fails.
+            ModuleModel | None: The generated module model if parsing is successful,
+            otherwise None.
         """
-        with open(self.file_path, "r") as file:
-            content: str = file.read()
+        wrapper = MetadataWrapper(libcst.parse_module(code))
+        module_id: str = ModuleIDGenerationStrategy.generate_id(
+            file_path=self.file_path
+        )
+        module_builder: ModuleModelBuilder = BuilderFactory.create_builder_instance(
+            block_type=BlockType.MODULE, file_path=self.file_path
+        )
 
-        # Parse the content and visit using ModuleVisitor
-        libcst_tree = libcst.parse_module(content)
-
-        # Wrap the tree with MetadataWrapper for metadata support
-        wrapped_tree = MetadataWrapper(libcst_tree)
-
-        # Visit the tree using ModuleVisitor
-        wrapped_tree.visit(self.module_visitor)
-
-        # Build and return the ModuleModel
-        module_model: ModuleModel = self.module_visitor.model_builder.build()  # type: ignore
+        visitor = ModuleVisitor(id=module_id, module_builder=module_builder)
+        wrapper.visit(visitor)
+        module_model: ModuleModel = self.build_module_model(visitor)
 
         return module_model if isinstance(module_model, ModuleModel) else None
+
+    def build_module_model(self, visitor: ModuleVisitor) -> ModuleModel:
+        """Builds and returns the module model from the given hierarchy."""
+        hierarchy: ModuleModelBuilder = visitor.builder_stack[0]  # type: ignore
+        return hierarchy.build()

@@ -7,22 +7,11 @@ from model_builders.module_model_builder import ModuleModelBuilder
 from models.models import ImportModel, ImportNameModel
 
 
-def get_header_content(header_content: Sequence[libcst.EmptyLine]) -> list[str]:
-    """Gets the header content and returns it as a list of strings."""
-    return [
-        header_line.comment.value
-        for header_line in header_content
-        if header_line.comment
-    ]
-
-
-def get_footer_content(footer_content: Sequence[libcst.EmptyLine]) -> list[str]:
-    """Gets the footer content and returns it as a list of strings."""
-    return [
-        footer_line.comment.value
-        for footer_line in footer_content
-        if footer_line.comment
-    ]
+def extract_content_from_empty_lines(
+    sequence: Sequence[libcst.EmptyLine],
+) -> list[str]:
+    """Gets the content from the header, footer, or sequence of empty lines that have comments and returns it as a list of strings."""
+    return [line.comment.value for line in sequence if line.comment]
 
 
 def get_import_name(node: libcst.Import) -> str:
@@ -51,19 +40,12 @@ def build_import_model(
     )
 
 
-def process_import(node: libcst.Import, model_builder: ModuleModelBuilder) -> None:
+def process_import(node: libcst.Import) -> ImportModel:
     import_name_model: ImportNameModel = build_import_name_model(node)
     import_model: ImportModel = build_import_model(
         import_name_models=[import_name_model]
     )
-    add_import_to_model_builder(import_model, model_builder)
-
-
-def add_import_to_model_builder(
-    import_model: ImportModel, model_builder: ModuleModelBuilder
-) -> None:
-    if isinstance(model_builder, ModuleModelBuilder):
-        model_builder.add_import(import_model)
+    return import_model
 
 
 def get_full_module_path(node) -> str:
@@ -84,9 +66,7 @@ def get_full_module_path(node) -> str:
         return str(node)
 
 
-def process_import_from(
-    node: libcst.ImportFrom, model_builder: ModuleModelBuilder
-) -> None:
+def process_import_from(node: libcst.ImportFrom) -> ImportModel:
     module_name: str | None = get_full_module_path(node.module) if node.module else None
     import_names: list[ImportNameModel] = build_import_from_name_models(node)
 
@@ -95,8 +75,7 @@ def process_import_from(
         imported_from=module_name,
         import_module_type=ImportModuleType.STANDARD_LIBRARY,  # TODO: Add logic to determine import module type
     )
-
-    add_import_to_model_builder(import_model, model_builder)
+    return import_model
 
 
 def extract_as_name(import_alias: libcst.ImportAlias) -> str | None:

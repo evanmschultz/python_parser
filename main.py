@@ -9,12 +9,12 @@ def main() -> None:
     Returns:
         None
     """
-    # Initialize parser with a specific file path
     parser = PythonParser("./sample_file.py")
-    module_model: ModuleModel | None = parser.parse()
+    code: str = parser.open_file()
+    module_model: ModuleModel | None = parser.parse(code)
 
     # Ensure module_model is an instance of ModuleModel or BaseCodeBlockModel
-    if isinstance(module_model, BaseCodeBlockModel):
+    if isinstance(module_model, ModuleModel):
         parsed_data_json: str = module_model.model_dump_json(indent=4)
         json_file_name: str = "Output.json"
 
