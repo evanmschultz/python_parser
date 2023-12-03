@@ -75,7 +75,7 @@ class BaseVisitor(libcst.CSTVisitor):
 
 class ModuleVisitor(BaseVisitor):
     def __init__(self, id: str, module_builder: ModuleModelBuilder) -> None:
-        super().__init__(id)
+        super().__init__(id=id)
         self.builder: ModuleModelBuilder = module_builder
         self.builder_stack.append(module_builder)
 
@@ -108,6 +108,7 @@ class ModuleVisitor(BaseVisitor):
 
         class_builder: ClassModelBuilder = BuilderFactory.create_builder_instance(
             block_type=BlockType.CLASS,
+            id=class_id,
             name=node.name.value,
             parent_id=parent_id,
         )
@@ -137,6 +138,7 @@ class ModuleVisitor(BaseVisitor):
 
         func_builder: FunctionModelBuilder = BuilderFactory.create_builder_instance(
             block_type=BlockType.FUNCTION,
+            id=func_id,
             name=node.name.value,
             parent_id=parent_id,
         )
@@ -147,7 +149,7 @@ class ModuleVisitor(BaseVisitor):
         position_data: PositionData = self.get_node_position_data(node)
         process_func_def(func_id, node, position_data, func_builder)
 
-    def visit_Decorator(self, node: libcst.Decorator) -> bool | None:
+    def visit_Decorator(self, node: libcst.Decorator) -> None:
         parent_builder = self.builder_stack[-1]
         if (
             type(parent_builder) == FunctionModelBuilder
@@ -157,7 +159,6 @@ class ModuleVisitor(BaseVisitor):
                 content=extract_code_content(node)
             )
             parent_builder.add_decorator(decorator)
-        return True
 
     def visit_Parameters(self, node: libcst.Parameters) -> None:
         builder = self.builder_stack[-1]

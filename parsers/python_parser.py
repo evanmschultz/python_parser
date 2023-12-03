@@ -46,7 +46,7 @@ class PythonParser:
             file_path=self.file_path
         )
         module_builder: ModuleModelBuilder = BuilderFactory.create_builder_instance(
-            block_type=BlockType.MODULE, file_path=self.file_path
+            block_type=BlockType.MODULE, id=module_id, file_path=self.file_path
         )
 
         visitor = ModuleVisitor(id=module_id, module_builder=module_builder)
