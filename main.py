@@ -1,5 +1,11 @@
-from models.models import BaseCodeBlockModel, ModuleModel
+import logging
+from logging import Logger
+
+from models.models import ModuleModel
 from parsers.python_parser import PythonParser
+
+from rich.logging import RichHandler
+import typer
 
 
 def main() -> None:
@@ -9,23 +15,27 @@ def main() -> None:
     Returns:
         None
     """
+    logging.basicConfig(
+        level=logging.INFO, format="%(message)s", handlers=[RichHandler()]
+    )
+
+    logger: Logger = logging.getLogger(__name__)
+
     parser = PythonParser("./sample_file.py")
     code: str = parser.open_file()
     module_model: ModuleModel | None = parser.parse(code)
 
-    # Ensure module_model is an instance of ModuleModel or BaseCodeBlockModel
     if isinstance(module_model, ModuleModel):
         parsed_data_json: str = module_model.model_dump_json(indent=4)
         json_file_name: str = "Output.json"
 
-        # Save the parsed data to sample_output.json
         with open(json_file_name, "w") as outfile:
             outfile.write(parsed_data_json)
 
-        print(f"Parsed data saved to: {json_file_name}")
+        logger.info(f"Parsed data saved to: {json_file_name}")
     else:
-        print("Error: The parsed model is not of the expected type.")
+        logger.error("Error: The parsed model is not of the expected type.")
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)
