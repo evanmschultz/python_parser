@@ -73,7 +73,7 @@ class StandaloneCodeBlockIDGenerationStrategy(IDGenerationStrategy):
     """ID generation strategy for standalone code blocks."""
 
     @staticmethod
-    def generate_id(parent_id: str) -> str:
+    def generate_id(parent_id: str, count: int) -> str:
         """Generate an ID based on the given parent ID and block type.
 
         Args:
@@ -82,4 +82,4 @@ class StandaloneCodeBlockIDGenerationStrategy(IDGenerationStrategy):
         Returns:
             str: The generated ID.
         """
-        return f"{parent_id}__>__STANDALONE_CODE_BLOCK"
+        return f"{parent_id}__>__STANDALONE_CODE_BLOCK_{count}"
