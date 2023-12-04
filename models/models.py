@@ -5,8 +5,6 @@ from models.enums import (
     BlockType,
     ImportModuleType,
     CommentType,
-    MethodType,
-    ClassType,
 )
 
 
@@ -114,12 +112,10 @@ class ClassSpecificAttributes(BaseModel):
 
     class_name: str = Field(min_length=1)
     decorators: list[DecoratorModel] | None = None
-    base_classes: list[str] | None = None
-    class_type: ClassType
+    bases: list[str] | None = None
     docstring: str | None = None
     attributes: list[dict] | None = None
     keywords: list[ClassKeywordModel] | None = None
-    # type_parameters: list[str] | None = None # TODO: Add logic if proves useful
 
 
 class ClassModel(BaseCodeBlockModel, ClassSpecificAttributes):
@@ -137,7 +133,6 @@ class FunctionSpecificAttributes(BaseModel):
     parameters: ParameterListModel | None = None
     returns: str | None = None
     is_method: bool = False
-    method_type: MethodType | None = None
     is_async: bool = False
     # type_parameters: list[str] | None = None # TODO: Add logic if proves useful
 
