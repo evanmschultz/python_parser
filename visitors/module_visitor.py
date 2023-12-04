@@ -18,8 +18,9 @@ from models.models import (
     ParameterListModel,
 )
 from visitors.base_code_block_visitor import BaseVisitor
-from visitors.node_processing.common_functions import (
-    extract_code_content,
+from visitors.node_processing.class_def_functions import (
+    extract_decorator,
+    process_class_def,
 )
 from visitors.node_processing.function_def_functions import (
     process_func_def,
@@ -76,19 +77,12 @@ class ModuleVisitor(BaseVisitor):
             parent_id=parent_id,
         )
 
-        parent_builder: BuilderType = self.builder_stack[-1]
-        parent_builder.add_child(class_builder)
+        builder: ClassModelBuilder = self.builder_stack[-1]  # type: ignore
+        builder.add_child(class_builder)
         self.builder_stack.append(class_builder)
 
-        docstring: str | None = node.get_docstring()
-        code_content: str = extract_code_content(node)
         position_data: PositionData = self.get_node_position_data(node)
-        (
-            class_builder.set_docstring(docstring)
-            .set_code_content(code_content)
-            .set_start_line_num(position_data.start)
-            .set_end_line_num(position_data.end)
-        )
+        process_class_def(node, position_data, class_builder)
 
     def leave_ClassDef(self, original_node: libcst.ClassDef) -> None:
         self.builder_stack.pop()
@@ -105,23 +99,19 @@ class ModuleVisitor(BaseVisitor):
             name=node.name.value,
             parent_id=parent_id,
         )
-        parent_builder: BuilderType = self.builder_stack[-1]
-        parent_builder.add_child(func_builder)
+        builder: FunctionModelBuilder = self.builder_stack[-1]  # type: ignore
+        builder.add_child(func_builder)
         self.builder_stack.append(func_builder)
 
         position_data: PositionData = self.get_node_position_data(node)
         process_func_def(func_id, node, position_data, func_builder)
 
     def visit_Decorator(self, node: libcst.Decorator) -> None:
-        parent_builder = self.builder_stack[-1]
-        if (
-            type(parent_builder) == FunctionModelBuilder
-            or type(parent_builder) == ClassModelBuilder
-        ):
-            decorator: DecoratorModel = DecoratorModel(
-                content=extract_code_content(node)
-            )
-            parent_builder.add_decorator(decorator)
+        builder = self.builder_stack[-1]
+        if type(builder) == FunctionModelBuilder or type(builder) == ClassModelBuilder:
+            decorator: DecoratorModel | None = extract_decorator(node)
+            if decorator:
+                builder.add_decorator(decorator)
 
     def visit_Parameters(self, node: libcst.Parameters) -> None:
         builder = self.builder_stack[-1]
