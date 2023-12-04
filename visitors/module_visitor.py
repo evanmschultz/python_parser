@@ -46,12 +46,15 @@ class ModuleVisitor(BaseVisitor):
         header: list[str] = extract_content_from_empty_lines(node.header)
         footer: list[str] = extract_content_from_empty_lines(node.footer)
         content: str = node.code if node.code else ""
+        position_data: PositionData = self.get_node_position_data(node)
 
         (
             self.builder.set_docstring(docstring)
             .set_header_content(header)
             .set_footer_content(footer)
             .set_code_content(content)
+            .set_start_line_num(position_data.start)
+            .set_end_line_num(position_data.end)
         )
 
     def visit_Import(self, node: libcst.Import) -> None:
