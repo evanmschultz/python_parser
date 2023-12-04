@@ -13,8 +13,8 @@ if TYPE_CHECKING:
     from model_builders.class_model_builder import ClassModelBuilder
     from model_builders.function_model_builder import FunctionModelBuilder
     from model_builders.module_model_builder import ModuleModelBuilder
-    from model_builders.standalone_code_block_model_builder import (
-        StandaloneCodeBlockModelBuilder,
+    from model_builders.standalone_block_model_builder import (
+        StandaloneBlockModelBuilder,
     )
 
 
@@ -37,12 +37,6 @@ class BaseModelBuilder(ABC):
             dependencies=None,
             summary=None,
         )
-
-    # TODO: Remove this method once comment logic is re-added
-    def add_comment(self, comment) -> None:
-        if not self.common_attributes.important_comments:
-            self.common_attributes.important_comments = []
-        self.common_attributes.important_comments.append(comment)
 
     def set_start_line_num(
         self, line_num: int
@@ -106,7 +100,10 @@ class BaseModelBuilder(ABC):
         return self
 
     def add_child(
-        self, child: Union["ClassModelBuilder", "FunctionModelBuilder"]
+        self,
+        child: Union[
+            "ClassModelBuilder", "FunctionModelBuilder", StandaloneBlockModelBuilder
+        ],
     ) -> Union[
         "BaseModelBuilder",
         "ModuleModelBuilder",
