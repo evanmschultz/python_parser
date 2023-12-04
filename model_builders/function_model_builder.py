@@ -29,7 +29,7 @@ class FunctionModelBuilder(BaseModelBuilder):
         )
 
     def set_parameters_list(
-        self, parameter_list_model: ParameterListModel
+        self, parameter_list_model: ParameterListModel | None
     ) -> "FunctionModelBuilder":
         """Adds a parameter to the function model."""
         self.function_attributes.parameters = parameter_list_model

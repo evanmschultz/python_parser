@@ -13,9 +13,7 @@ from visitors.node_processing.common_functions import (
     extract_type_annotation,
 )
 
-from visitors.node_processing.processing_context import (
-    PositionData,
-)
+from visitors.node_processing.processing_context import PositionData
 
 
 def process_func_def(
@@ -74,7 +72,7 @@ def get_parameters_list(
 
 def process_parameters(
     node: libcst.Parameters,
-) -> ParameterListModel:
+) -> ParameterListModel | None:
     params: list[ParameterModel] | None = (
         get_parameters_list(node.params) if node.params else []
     )
@@ -96,13 +94,16 @@ def process_parameters(
         else None
     )
 
-    return ParameterListModel(
-        params=params,
-        kwonly_params=kwonly_params,
-        posonly_params=posonly_params,
-        star_arg=star_arg,
-        star_kwarg=star_kwarg,
-    )
+    if params and kwonly_params and posonly_params and star_arg and star_kwarg:
+        return ParameterListModel(
+            params=params,
+            kwonly_params=kwonly_params,
+            posonly_params=posonly_params,
+            star_arg=star_arg,
+            star_kwarg=star_kwarg,
+        )
+    else:
+        return None
 
 
 def extract_return_annotation(
