@@ -1,19 +1,14 @@
 import logging
 from logging import Logger
-from rich.logging import RichHandler
 
 from typing import Any, Callable, Literal, overload
+from logger.decorators import logging_decorator
 
 from model_builders.class_model_builder import ClassModelBuilder
 from model_builders.function_model_builder import FunctionModelBuilder
 from model_builders.module_model_builder import ModuleModelBuilder
 
 from models.enums import BlockType
-
-
-logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler()])
-
-logger: Logger = logging.getLogger(__name__)
 
 
 class BuilderFactory:
@@ -66,6 +61,7 @@ class BuilderFactory:
     ) -> FunctionModelBuilder:
         ...
 
+    @logging_decorator(level=logging.DEBUG)
     @staticmethod
     def create_builder_instance(
         block_type: BlockType,
@@ -77,7 +73,6 @@ class BuilderFactory:
     ) -> ModuleModelBuilder | ClassModelBuilder | FunctionModelBuilder:
         if block_type not in BuilderFactory._creation_strategies:
             raise ValueError(f"Unknown node type: {block_type}")
-        logger.info(f"Creating builder instance for block type: {block_type}")
         return BuilderFactory._creation_strategies[block_type](
             id=id, name=name, parent_id=parent_id, file_path=file_path
         )
