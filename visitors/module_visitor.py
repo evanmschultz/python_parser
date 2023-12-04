@@ -108,7 +108,8 @@ class ModuleVisitor(BaseVisitor):
         builder = self.builder_stack[-1]
         parameter_list: ParameterListModel | None = process_parameters(node)
 
-        builder.set_parameters_list(parameter_list)  # type: ignore
+        if isinstance(builder, FunctionModelBuilder):
+            builder.set_parameters_list(parameter_list)  # type: ignore
 
     def leave_FunctionDef(self, original_node: libcst.FunctionDef) -> None:
         self.builder_stack.pop()
