@@ -94,8 +94,8 @@ class SampleClass(metaclass=type("MyMeta")):
         return cls(param1)
 
 
-# Test
-something = "something"
+# Test_new
+something_new = "something_new"
 
 
 class SecondClass2(SampleClass, custom_arg=123):
