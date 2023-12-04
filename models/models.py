@@ -80,7 +80,7 @@ class BaseCodeBlockModel(BaseModel):
             "FunctionModel",
             "StandaloneCodeBlockModel",
         ]
-    ] = []
+    ] | None = []
 
     @validator("parent_id", always=True)
     def check_parent_id(cls, v, values, **kwargs) -> str | None:
@@ -146,4 +146,4 @@ class FunctionModel(BaseCodeBlockModel, FunctionSpecificAttributes):
 class StandaloneCodeBlockModel(BaseCodeBlockModel):
     """Model for a standalone code block."""
 
-    ...
+    children: None = None
