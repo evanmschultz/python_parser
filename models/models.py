@@ -36,15 +36,16 @@ class DecoratorModel(BaseModel):
     """Class representing a decorator."""
 
     content: str
-    # decorator_name: str
-    # decorator_args: list[str] | None = None
+    decorator_name: str
+    decorator_args: list[str] | None = None
 
 
 class ClassKeywordModel(BaseModel):
     """Class representing a class keyword."""
 
+    content: str
     keyword_name: str
-    args: list[str]
+    args: str | None = None
 
 
 class ParameterModel(BaseModel):
