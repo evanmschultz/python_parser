@@ -143,7 +143,15 @@ class FunctionModel(BaseCodeBlockModel, FunctionSpecificAttributes):
     ...
 
 
-class StandaloneCodeBlockModel(BaseCodeBlockModel):
+class StandaloneCodeBlockSpecificAttributes(BaseModel):
+    """Standalone code block specific attributes."""
+
+    variable_assignments: list[str] | None = None
+
+
+class StandaloneCodeBlockModel(
+    BaseCodeBlockModel, StandaloneCodeBlockSpecificAttributes
+):
     """Model for a standalone code block."""
 
-    children: None = None
+    ...
