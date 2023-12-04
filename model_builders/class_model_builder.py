@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 from model_builders.base_model_builder import BaseModelBuilder
 from models.models import ClassSpecificAttributes, ClassModel
-from models.enums import BlockType, ClassType
+from models.enums import BlockType
 
 
 if TYPE_CHECKING:
@@ -11,7 +11,6 @@ if TYPE_CHECKING:
         ClassKeywordModel,
         DecoratorModel,
         BlockType,
-        ClassType,
     )
 
 
@@ -22,28 +21,25 @@ class ClassModelBuilder(BaseModelBuilder):
         self.class_attributes = ClassSpecificAttributes(
             class_name=class_name,
             decorators=None,
-            base_classes=None,
-            class_type=ClassType.STANDARD,
+            bases=None,
             docstring=None,
             attributes=None,
             keywords=None,
         )
 
-    def add_decorator(self, decorator: DecoratorModel) -> "ClassModelBuilder":
+    def set_decorators(
+        self, decorators: list[DecoratorModel] | None
+    ) -> "ClassModelBuilder":
         """Adds decorator to the decorators list in the class model."""
-        if not self.class_attributes.decorators:
-            self.class_attributes.decorators = []
-        self.class_attributes.decorators.append(decorator)
+        if decorators:
+            self.class_attributes.decorators = decorators
+        else:
+            self.class_attributes.decorators = None
         return self
 
-    def set_base_class_list(self, base_classes: list[str]) -> "ClassModelBuilder":
+    def set_bases(self, base_classes: list[str]) -> "ClassModelBuilder":
         """Sets the list of base classes to the class model."""
-        self.class_attributes.base_classes = base_classes
-        return self
-
-    def set_class_type(self, class_type: ClassType) -> "ClassModelBuilder":
-        """Sets the type of the class in the model."""
-        self.class_attributes.class_type = class_type
+        self.class_attributes.bases = base_classes
         return self
 
     def set_docstring(self, docstring: str | None) -> "ClassModelBuilder":

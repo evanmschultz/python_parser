@@ -6,7 +6,6 @@ from models.models import (
     FunctionModel,
     FunctionSpecificAttributes,
     ParameterListModel,
-    MethodType,
     BlockType,
 )
 from model_builders.base_model_builder import BaseModelBuilder
@@ -25,7 +24,6 @@ class FunctionModelBuilder(BaseModelBuilder):
             decorators=None,
             parameters=None,
             is_method=False,
-            method_type=None,
             is_async=False,
             returns=None,
         )
@@ -37,11 +35,14 @@ class FunctionModelBuilder(BaseModelBuilder):
         self.function_attributes.parameters = parameter_list_model
         return self
 
-    def add_decorator(self, decorator: DecoratorModel) -> "FunctionModelBuilder":
-        """Adds decorator to the decorators list in the function model."""
-        if not self.function_attributes.decorators:
-            self.function_attributes.decorators = []
-        self.function_attributes.decorators.append(decorator)
+    def set_decorators(
+        self, decorators: list[DecoratorModel] | None
+    ) -> "FunctionModelBuilder":
+        """Adds decorator to the decorators list in the class model."""
+        if decorators:
+            self.function_attributes.decorators = decorators
+        else:
+            self.function_attributes.decorators = None
         return self
 
     def set_docstring(self, docstring: str | None) -> "FunctionModelBuilder":
@@ -58,9 +59,6 @@ class FunctionModelBuilder(BaseModelBuilder):
         """Sets the is_method attribute in the function model."""
         self.function_attributes.is_method = is_method
         return self
-
-    def set_method_type(self, method_type: MethodType) -> "FunctionModelBuilder":
-        ...
 
     def set_is_async(self, is_async: bool) -> "FunctionModelBuilder":
         """Sets the is_async attribute in the function model."""
