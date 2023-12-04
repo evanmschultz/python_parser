@@ -1,4 +1,5 @@
-from typing import Callable
+import logging
+from typing import Callable, Sequence
 import libcst
 
 from id_generation.id_generation_strategies import (
@@ -7,7 +8,7 @@ from id_generation.id_generation_strategies import (
     ModuleIDGenerationStrategy,
 )
 
-from models.models import CommentModel
+from models.models import CommentModel, DecoratorModel
 from models.enums import BlockType, CommentType
 
 
@@ -79,61 +80,48 @@ def extract_important_comment(
         )
 
 
-# def extract_decorators(
-#     decorators: Sequence[libcst.Decorator],
-# ) -> list[DecoratorModel]:
-#     """
-#     Extracts decorators from a sequence of decorator nodes.
+def extract_decorators(
+    decorators: Sequence[libcst.Decorator],
+) -> list[DecoratorModel] | None:
+    decorators_list: list[DecoratorModel] = []
+    for decorator in decorators:
+        decorator_model: DecoratorModel | None = extract_decorator(decorator)
+        if isinstance(decorator_model, DecoratorModel):
+            decorators_list.append(extract_decorator(decorator))  # type: ignore
+    return decorators_list if decorators_list else None
 
-#     Args:
-#         decorators (Sequence[libcst.Decorator]): The sequence of decorator nodes.
 
-#     Returns:
-#         list[DecoratorModel]: The extracted decorator models.
-#     """
-#     decorator_list: list[DecoratorModel] = []
+def extract_decorator(
+    decorator: libcst.Decorator,
+) -> DecoratorModel | None:
+    decorator_name: str = ""
+    arg_list: list[str] | None = None
+    if isinstance(decorator.decorator, libcst.Name):
+        decorator_name: str = decorator.decorator.value
+    if isinstance(decorator.decorator, libcst.Call):
+        func = decorator.decorator.func
+        if isinstance(func, libcst.Name) or isinstance(func, libcst.Attribute):
+            if decorator.decorator.args:
+                arg_list = [
+                    extract_stripped_code_content(arg)
+                    for arg in decorator.decorator.args
+                ]
+        if isinstance(func, libcst.Name):
+            decorator_name = func.value
+        elif isinstance(func, libcst.Attribute):
+            decorator_name = func.attr.value
+        else:
+            logging.warning("Decorator func is not a Name or Attribute node")
 
-#     def extract_function_name_from_decorator(
-#         decorator: libcst.Decorator,
-#     ) -> str | None:
-#         """Extracts the function name from a decorator."""
-
-#         if isinstance(decorator.decorator, libcst.Call):
-#             if isinstance(decorator.decorator.func, libcst.Name):
-#                 return decorator.decorator.func.value
-#         return None
-
-#     def extract_arguments_from_decorator(call: libcst.Call) -> list[str]:
-#         """Extracts the arguments from a decorator."""
-
-#         def get_value_from_arg(arg) -> str:
-#             return str(arg.value.value)
-
-#         return [get_value_from_arg(arg) for arg in call.args]
-
-#     def process_decorator(decorator: libcst.Decorator) -> None:
-#         """Processes a decorator and adds it to the decorator list."""
-#         func_name: str | None = extract_function_name_from_decorator(decorator)
-#         if func_name and isinstance(decorator.decorator, libcst.Call):
-#             args: list[str] = extract_arguments_from_decorator(decorator.decorator)
-#             decorator_model = DecoratorModel(
-#                 decorator_name=func_name, decorator_args=args
-#             )
-
-#             decorator_list.append(decorator_model)
-
-#     def handle_non_call_decorators(decorator: libcst.Decorator) -> None:
-#         """Handles decorators that are not calls."""
-#         if isinstance(decorator.decorator, libcst.Name):
-#             decorator_model = DecoratorModel(decorator_name=decorator.decorator.value)
-#             decorator_list.append(decorator_model)
-
-#     for decorator in decorators:
-#         if isinstance(decorator.decorator, libcst.Call):
-#             process_decorator(decorator)
-#         else:
-#             handle_non_call_decorators(decorator)
-#     return decorator_list
+    return (
+        DecoratorModel(
+            content=extract_stripped_code_content(decorator),
+            decorator_name=decorator_name,
+            decorator_args=arg_list,
+        )
+        if decorator_name
+        else None
+    )
 
 
 def extract_type_annotation(node: libcst.CSTNode) -> str | None:

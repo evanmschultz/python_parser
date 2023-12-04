@@ -1,11 +1,15 @@
+import logging
 from typing import Sequence
+
 import libcst
+
 from model_builders.class_model_builder import ClassModelBuilder
 
 from models.models import ClassKeywordModel, DecoratorModel
 from visitors.node_processing.common_functions import (
     extract_code_content,
     extract_stripped_code_content,
+    extract_decorators,
 )
 from visitors.node_processing.processing_context import PositionData
 
@@ -19,12 +23,15 @@ def process_class_def(
     code_content: str = extract_code_content(node)
     bases: list[str] | None = extract_bases(node.bases)
     keywords: list[ClassKeywordModel] | None = extract_keywords(node.keywords)
+    decorators: list[DecoratorModel] | None = extract_decorators(node.decorators)
+
     (
         builder.set_docstring(docstring)
         .set_code_content(code_content)
         .set_start_line_num(position_data.start)
         .set_end_line_num(position_data.end)
-        .set_base_class_list(bases)  # type: ignore
+        .set_bases(bases)  # type: ignore
+        .set_decorators(decorators)
         .set_keywords(keywords)
     )
 
@@ -60,36 +67,3 @@ def extract_keywords(
             keywords_list.append(keyword_model)
 
     return keywords_list if keywords_list else None
-
-
-def extract_decorator(
-    decorator: libcst.Decorator,
-) -> DecoratorModel | None:
-    decorator_name: str = ""
-    arg_list: list[str] | None = None
-    if isinstance(decorator.decorator, libcst.Name):
-        decorator_name: str = decorator.decorator.value
-    if isinstance(decorator.decorator, libcst.Call):
-        func = decorator.decorator.func
-        if isinstance(func, libcst.Name) or isinstance(func, libcst.Attribute):
-            if decorator.decorator.args:
-                arg_list = [
-                    extract_stripped_code_content(arg)
-                    for arg in decorator.decorator.args
-                ]
-        if isinstance(func, libcst.Name):
-            decorator_name = func.value
-        elif isinstance(func, libcst.Attribute):
-            decorator_name = func.attr.value
-        else:
-            print("Decorator func is not a Name or Attribute node")
-
-    return (
-        DecoratorModel(
-            content=extract_stripped_code_content(decorator),
-            decorator_name=decorator_name,
-            decorator_args=arg_list,
-        )
-        if decorator_name
-        else None
-    )

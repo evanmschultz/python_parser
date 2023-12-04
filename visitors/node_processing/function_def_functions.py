@@ -5,9 +5,10 @@ import libcst
 from model_builders.function_model_builder import FunctionModelBuilder
 
 from models.enums import BlockType
-from models.models import ParameterListModel, ParameterModel
+from models.models import DecoratorModel, ParameterListModel, ParameterModel
 from visitors.node_processing.common_functions import (
     extract_code_content,
+    extract_decorators,
     extract_stripped_code_content,
     extract_type_annotation,
 )
@@ -25,6 +26,8 @@ def process_func_def(
 ) -> None:
     docstring: str | None = node.get_docstring()
     code_content: str = extract_code_content(node)
+    decorators: list[DecoratorModel] | None = extract_decorators(node.decorators)
+
     returns: str = (
         extract_return_annotation(node.returns)
         if node.returns
@@ -36,6 +39,7 @@ def process_func_def(
         .set_code_content(code_content)
         .set_start_line_num(position_data.start)
         .set_end_line_num(position_data.end)
+        .set_decorators(decorators)  # type: ignore
         .set_is_method(func_is_method(func_id))  # type: ignore
         .set_is_async(func_is_async(node))
         .set_return_annotation(returns)
