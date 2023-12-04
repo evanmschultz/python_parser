@@ -151,6 +151,8 @@ class KeywordSampleClass(
     active=True,  # Boolean Value
     target=None,  # None Value
 ):
+    """KeywordSampleClass docstring"""
+
     ...
 
 
