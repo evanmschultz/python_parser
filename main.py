@@ -1,25 +1,18 @@
 import logging
 from logging import Logger
-
-from models.models import ModuleModel
-from parsers.python_parser import PythonParser
-
-from rich.logging import RichHandler
 import typer
+
+from logger.logging_config import setup_logging
+from parsers.python_parser import PythonParser
+from models.models import ModuleModel
 
 
 def main() -> None:
     """
     Main function that parses a Python file and saves the parsed data to a JSON file.
-
-    Returns:
-        None
     """
-    logging.basicConfig(
-        level=logging.INFO, format="%(message)s", handlers=[RichHandler()]
-    )
-
     logger: Logger = logging.getLogger(__name__)
+    logger.info("Starting the Python parser.")
 
     parser = PythonParser("./sample_file.py")
     code: str = parser.open_file()
@@ -38,4 +31,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    setup_logging(logging.DEBUG)
     typer.run(main)
