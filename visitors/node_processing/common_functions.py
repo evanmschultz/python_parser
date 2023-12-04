@@ -1,44 +1,10 @@
 import logging
-from typing import Callable, Sequence
+from typing import Sequence
 import libcst
 
-from id_generation.id_generation_strategies import (
-    ClassIDGenerationStrategy,
-    FunctionIDGenerationStrategy,
-    ModuleIDGenerationStrategy,
-)
 
 from models.models import CommentModel, DecoratorModel
-from models.enums import BlockType, CommentType
-
-
-def get_node_id(*, node_type: BlockType, context: dict[str, str]) -> str:
-    """
-    Generates a unique ID for a given node based on its type and context.
-
-    Args:
-        node_type (BlockType): The type of the node (e.g., MODULE, CLASS, FUNCTION).
-        context (dict[str, str]): The context information used for ID generation.
-
-    Returns:
-        str: The generated unique ID for the node.
-
-    Raises:
-        ValueError: If no ID generation strategy is found for the given node type.
-    """
-
-    id_generation_strategies: dict[BlockType, Callable[..., str]] = {
-        BlockType.MODULE: ModuleIDGenerationStrategy.generate_id,
-        BlockType.CLASS: ClassIDGenerationStrategy.generate_id,
-        BlockType.FUNCTION: FunctionIDGenerationStrategy.generate_id,
-        # TODO: Add STANDALONE_CODE_BLOCK generation strategy
-    }
-
-    strategy_function = id_generation_strategies.get(node_type)
-    if strategy_function:
-        return strategy_function(**context)
-    else:
-        raise ValueError(f"No strategy found for node type: {node_type}")
+from models.enums import CommentType
 
 
 def extract_code_content(
