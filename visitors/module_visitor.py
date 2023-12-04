@@ -13,13 +13,11 @@ from model_builders.module_model_builder import ModuleModelBuilder
 
 from models.enums import BlockType
 from models.models import (
-    DecoratorModel,
     ImportModel,
     ParameterListModel,
 )
 from visitors.base_code_block_visitor import BaseVisitor
 from visitors.node_processing.class_def_functions import (
-    extract_decorator,
     process_class_def,
 )
 from visitors.node_processing.function_def_functions import (
@@ -105,13 +103,6 @@ class ModuleVisitor(BaseVisitor):
 
         position_data: PositionData = self.get_node_position_data(node)
         process_func_def(func_id, node, position_data, func_builder)
-
-    def visit_Decorator(self, node: libcst.Decorator) -> None:
-        builder = self.builder_stack[-1]
-        if type(builder) == FunctionModelBuilder or type(builder) == ClassModelBuilder:
-            decorator: DecoratorModel | None = extract_decorator(node)
-            if decorator:
-                builder.add_decorator(decorator)
 
     def visit_Parameters(self, node: libcst.Parameters) -> None:
         builder = self.builder_stack[-1]
