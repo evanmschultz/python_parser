@@ -1,5 +1,7 @@
 import logging
 from logging import Logger
+from rich.logging import RichHandler
+
 from typing import Any, Callable, Literal, overload
 
 from model_builders.class_model_builder import ClassModelBuilder
@@ -8,7 +10,6 @@ from model_builders.module_model_builder import ModuleModelBuilder
 
 from models.enums import BlockType
 
-from rich.logging import RichHandler
 
 logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler()])
 
