@@ -176,7 +176,8 @@ pyrightconfig.json
 # Exclude .DS_Store files
 .DS_Store
 
-# Exclude test outputs
-Output.json
+# Project-specific directories
+# The output directory is ignored to prevent pushing generated files to source control
+/output/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
