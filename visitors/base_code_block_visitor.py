@@ -17,7 +17,7 @@ from models.models import (
 from visitors.node_processing.common_functions import (
     extract_important_comment,
 )
-from visitors.node_processing.processing_context import PositionData
+from utilities.processing_context import PositionData
 
 
 BuilderType = Union[ModuleModelBuilder, ClassModelBuilder, FunctionModelBuilder]

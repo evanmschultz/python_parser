@@ -13,7 +13,7 @@ from visitors.node_processing.common_functions import (
     extract_type_annotation,
 )
 
-from visitors.node_processing.processing_context import PositionData
+from utilities.processing_context import PositionData
 
 
 def process_func_def(
