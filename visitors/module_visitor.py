@@ -20,6 +20,9 @@ from visitors.base_code_block_visitor import BaseVisitor
 from visitors.node_processing.class_def_functions import (
     process_class_def,
 )
+from visitors.node_processing.gather_dependencies import (
+    gather_and_set_children_dependencies,
+)
 from visitors.node_processing.function_def_functions import (
     process_func_def,
     process_parameters,
@@ -132,3 +135,6 @@ class ModuleVisitor(BaseVisitor):
 
     def leave_FunctionDef(self, original_node: libcst.FunctionDef) -> None:
         self.builder_stack.pop()
+
+    def leave_Module(self, original_node: libcst.Module) -> None:
+        gather_and_set_children_dependencies(self.builder)
