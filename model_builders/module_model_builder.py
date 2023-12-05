@@ -18,6 +18,7 @@ class ModuleModelBuilder(BaseModelBuilder):
             docstring=None,
             header=None,
             footer=None,
+            imports=None,
         )
 
     def set_docstring(self, docstring: str | None) -> "ModuleModelBuilder":
@@ -43,10 +44,10 @@ class ModuleModelBuilder(BaseModelBuilder):
         return self
 
     def add_import(self, import_model: ImportModel) -> "ModuleModelBuilder":
-        """Add an import to the dependencies list."""
-        if not self.common_attributes.dependencies:
-            self.common_attributes.dependencies = []
-        self.common_attributes.dependencies.append(import_model)
+        """Add an import to the imports list."""
+        if not self.module_attributes.imports:
+            self.module_attributes.imports = []
+        self.module_attributes.imports.append(import_model)
         return self
 
     def _get_module_specific_attributes(self) -> dict[str, Any]:

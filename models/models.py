@@ -72,7 +72,7 @@ class BaseCodeBlockModel(BaseModel):
     end_line_num: int
     code_content: str
     important_comments: list[CommentModel] | None = None
-    dependencies: list[ImportModel] | None = None
+    dependencies: list[ImportModel | str] | None = None
     summary: str | None = None
     children: list[
         Union[
@@ -99,6 +99,7 @@ class ModuleSpecificAttributes(BaseModel):
     docstring: str | None = None
     header: list[str] | None = None
     footer: list[str] | None = None
+    imports: list[ImportModel] | None = None
 
 
 class ModuleModel(BaseCodeBlockModel, ModuleSpecificAttributes):
