@@ -115,9 +115,10 @@ class BaseModelBuilder(ABC):
         return self
 
     def build_and_set_children(self) -> None:
-        self.common_attributes.children = [
-            child.build() for child in self.children_builders
-        ]
+        if self.children_builders:
+            self.common_attributes.children = [
+                child.build() for child in self.children_builders
+            ]
 
     def _get_common_attributes(self) -> dict[str, Any]:
         """
