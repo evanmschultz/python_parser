@@ -31,5 +31,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    setup_logging(logging.DEBUG)
+    setup_logging()
     typer.run(main)
