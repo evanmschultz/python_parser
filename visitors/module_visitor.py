@@ -10,7 +10,6 @@ from model_builders.builder_factory import BuilderFactory
 from model_builders.class_model_builder import ClassModelBuilder
 from model_builders.function_model_builder import FunctionModelBuilder
 from model_builders.module_model_builder import ModuleModelBuilder
-from model_builders.standalone_block_model_builder import StandaloneBlockModelBuilder
 
 from models.enums import BlockType
 from models.models import (
@@ -30,7 +29,10 @@ from visitors.node_processing.module_functions import (
     process_import,
     process_import_from,
 )
-from visitors.node_processing.processing_context import PositionData
+from visitors.node_processing.processing_context import (
+    NodeAndPositionData,
+    PositionData,
+)
 from visitors.node_processing.standalone_code_block_functions import (
     gather_standalone_lines,
     process_standalone_blocks,
@@ -61,8 +63,9 @@ class ModuleVisitor(BaseVisitor):
             .set_start_line_num(position_data.start)
             .set_end_line_num(position_data.end)
         )
-        standalone_blocks: list[list[libcst.CSTNode]] = gather_standalone_lines(
-            node.body
+
+        standalone_blocks: list[NodeAndPositionData] = gather_standalone_lines(
+            node.body, self
         )
         standalone_block_models = process_standalone_blocks(
             code_blocks=standalone_blocks, parent_id=self.id
