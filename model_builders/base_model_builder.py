@@ -33,7 +33,7 @@ class BaseModelBuilder(ABC):
             end_line_num=0,
             code_content="",
             important_comments=None,
-            children=[],
+            children=None,
             dependencies=None,
             summary=None,
         )
