@@ -36,7 +36,7 @@ def extract_important_comment(
     comment_types: list[CommentType] = [
         comment_type
         for comment_type in CommentType
-        if comment_type.value in comment_text
+        if comment_type.value in comment_text.upper()
     ]
 
     if comment_types:
