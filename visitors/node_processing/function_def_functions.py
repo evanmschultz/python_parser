@@ -37,8 +37,10 @@ def process_func_def(
         .set_code_content(code_content)
         .set_start_line_num(position_data.start)
         .set_end_line_num(position_data.end)
-        .set_decorators(decorators)  # type: ignore
-        .set_is_method(func_is_method(func_id))  # type: ignore
+    )
+    (
+        func_builder.set_decorators(decorators)
+        .set_is_method(func_is_method(func_id))
         .set_is_async(func_is_async(node))
         .set_return_annotation(returns)
     )

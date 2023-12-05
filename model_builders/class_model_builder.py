@@ -38,7 +38,7 @@ class ClassModelBuilder(BaseModelBuilder):
             self.class_attributes.decorators = None
         return self
 
-    def set_bases(self, base_classes: list[str]) -> "ClassModelBuilder":
+    def set_bases(self, base_classes: list[str] | None) -> "ClassModelBuilder":
         """Sets the list of base classes to the class model."""
         self.class_attributes.bases = base_classes
         return self

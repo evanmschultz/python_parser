@@ -30,10 +30,8 @@ def process_class_def(
         .set_code_content(code_content)
         .set_start_line_num(position_data.start)
         .set_end_line_num(position_data.end)
-        .set_bases(bases)  # type: ignore
-        .set_decorators(decorators)
-        .set_keywords(keywords)
     )
+    builder.set_bases(bases).set_decorators(decorators).set_keywords(keywords)
 
 
 def extract_bases(bases: Sequence[libcst.Arg]) -> list[str] | None:
