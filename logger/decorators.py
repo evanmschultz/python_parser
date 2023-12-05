@@ -1,10 +1,8 @@
-from dataclasses import dataclass
 from functools import wraps
 import inspect
 from inspect import FrameInfo
 import logging
 from logging import LogRecord, Logger
-from types import ModuleType
 from typing import Callable
 import libcst
 
