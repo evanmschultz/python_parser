@@ -7,6 +7,7 @@ from models.models import (
     BaseCodeBlockModel,
     CommentModel,
     BlockType,
+    ImportModel,
 )
 
 if TYPE_CHECKING:
@@ -112,6 +113,18 @@ class BaseModelBuilder(ABC):
     ]:
         """Adds a child code block to the model instance."""
         self.children_builders.append(child)  # type: ignore # TODO: Remove type ignore when stand alone code block model is added
+        return self
+
+    def set_dependencies(
+        self, dependencies: list[ImportModel | str] | None
+    ) -> Union[
+        "BaseModelBuilder",
+        "ModuleModelBuilder",
+        "ClassModelBuilder",
+        "FunctionModelBuilder",
+    ]:
+        """Sets the dependencies of the model instance."""
+        self.common_attributes.dependencies = dependencies
         return self
 
     def build_and_set_children(self) -> None:
