@@ -24,7 +24,9 @@ class BaseModelBuilder(ABC):
         self, *, id: str, block_type: BlockType, parent_id: str | None
     ) -> None:
         self.id: str = id
-        self.children_builders: list[ClassModelBuilder | FunctionModelBuilder] = []
+        self.children_builders: list[
+            ClassModelBuilder | FunctionModelBuilder | StandaloneBlockModelBuilder
+        ] = []
 
         self.common_attributes = BaseCodeBlockModel(
             id=id,
