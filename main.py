@@ -3,33 +3,30 @@ from logging import Logger
 import typer
 
 from logger.logging_config import setup_logging
-from parsers.python_parser import PythonParser
-from models.models import ModuleModel
+from visitor_manager.visitor_manager import VisitorManager
 
 
-def main() -> None:
-    """
-    Main function that parses a Python file and saves the parsed data to a JSON file.
-    """
+def main(
+    directory: str = typer.Option(
+        default=".",
+        prompt="Please enter a directory path",
+        help="The path to the directory to parse",
+    ),
+    output_directory: str = typer.Option(
+        default="output",
+        help="The path to the output directory",
+    ),
+) -> None:
     logger: Logger = logging.getLogger(__name__)
-    logger.info("Starting the Python parser.")
+    logger.info("Starting the directory parsing.")
 
-    parser = PythonParser("./sample_file.py")
-    code: str = parser.open_file()
-    module_model: ModuleModel | None = parser.parse(code)
+    visitor_manager = VisitorManager(directory, output_directory)
+    visitor_manager.process_files()
+    visitor_manager.save_visited_directories()
 
-    if isinstance(module_model, ModuleModel):
-        parsed_data_json: str = module_model.model_dump_json(indent=4)
-        json_file_name: str = "Output.json"
-
-        with open(json_file_name, "w") as outfile:
-            outfile.write(parsed_data_json)
-
-        logger.info(f"Parsed data saved to: {json_file_name}")
-    else:
-        logger.error("Error: The parsed model is not of the expected type.")
+    logger.info("Directory parsing completed.")
 
 
 if __name__ == "__main__":
-    setup_logging()
+    setup_logging(logging.DEBUG)
     typer.run(main)
