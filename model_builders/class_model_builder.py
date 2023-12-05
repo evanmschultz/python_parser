@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
+from logger.decorators import logging_decorator
 
 from model_builders.base_model_builder import BaseModelBuilder
 from models.models import ClassSpecificAttributes, ClassModel
@@ -66,6 +67,7 @@ class ClassModelBuilder(BaseModelBuilder):
         """Gets the class specific attributes."""
         return self.class_attributes.model_dump()
 
+    @logging_decorator(message="Building ClassModel")
     def build(self) -> ClassModel:
         """Creates a ClassModel instance."""
         self.build_and_set_children()

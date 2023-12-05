@@ -1,5 +1,4 @@
 from typing import Sequence
-import logging
 import libcst
 
 from logger.decorators import logging_decorator
@@ -17,7 +16,7 @@ from visitors.node_processing.common_functions import (
     extract_important_comment,
     extract_stripped_code_content,
 )
-from visitors.node_processing.processing_context import NodeAndPositionData
+from utilities.processing_context import NodeAndPositionData
 
 
 def gather_standalone_lines(
@@ -73,7 +72,6 @@ def process_standalone_blocks(
 
 
 # TODO: Fix important comment logic
-@logging_decorator(level=logging.DEBUG, syntax_highlighting=True)
 def _process_standalone_block(
     standalone_block: NodeAndPositionData, parent_id: str, count: int
 ) -> StandaloneBlockModelBuilder:
@@ -96,12 +94,14 @@ def _process_standalone_block(
     return builder
 
 
+@logging_decorator(syntax_highlighting=True)
 def _process_nodes(
     standalone_block: NodeAndPositionData,
 ) -> tuple[str, list[str], list[CommentModel]]:
     content: str = ""
     variable_assignments: list[str] = []
     important_comments: list[CommentModel] = []
+
     for line in standalone_block.nodes:
         if isinstance(line, libcst.SimpleStatementLine):
             variable_assignments.extend(_extract_variable_assignments(line))

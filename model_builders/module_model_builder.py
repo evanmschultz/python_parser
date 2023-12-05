@@ -1,4 +1,5 @@
 from typing import Any
+from logger.decorators import logging_decorator
 from models.models import (
     ModuleModel,
     ImportModel,
@@ -52,6 +53,7 @@ class ModuleModelBuilder(BaseModelBuilder):
         """Get the module specific attributes."""
         return self.module_attributes.model_dump()
 
+    @logging_decorator(message="Building module model")
     def build(self) -> ModuleModel:
         """Builds and returns the module model instance."""
         self.build_and_set_children()

@@ -1,4 +1,6 @@
 from typing import Any
+
+from logger.decorators import logging_decorator
 from model_builders.base_model_builder import BaseModelBuilder
 from models.enums import BlockType
 from models.models import (
@@ -28,6 +30,7 @@ class StandaloneBlockModelBuilder(BaseModelBuilder):
         """Gets the standalone block specific attributes."""
         return self.standalone_block_attributes.model_dump()
 
+    @logging_decorator(message="Building standalone code block model")
     def build(self) -> StandaloneCodeBlockModel:
         """Creates a StandaloneCodeBlockModel instance."""
         return StandaloneCodeBlockModel(

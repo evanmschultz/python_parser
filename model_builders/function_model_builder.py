@@ -1,6 +1,5 @@
-# TODO: Add `set_method_type` method.
-
 from typing import Any
+from logger.decorators import logging_decorator
 from models.models import (
     DecoratorModel,
     FunctionModel,
@@ -71,6 +70,7 @@ class FunctionModelBuilder(BaseModelBuilder):
         """
         return self.function_attributes.model_dump()
 
+    @logging_decorator(message="Building function model")
     def build(self) -> FunctionModel:
         """Builds and returns the function model instance."""
         self.build_and_set_children()

@@ -76,7 +76,7 @@ class BuilderFactory:
     ) -> StandaloneBlockModelBuilder:
         ...
 
-    @logging_decorator(level=logging.DEBUG)
+    @logging_decorator()
     @staticmethod
     def create_builder_instance(
         block_type: BlockType,
