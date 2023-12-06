@@ -23,6 +23,12 @@ class ImportModel(BaseModel):
     import_module_type: ImportModuleType = ImportModuleType.STANDARD_LIBRARY
 
 
+class ModuleDependencyModel(BaseModel):
+    """Class representing a module dependency."""
+
+    module_code_block_id: str
+
+
 class CommentModel(BaseModel):
     """Class representing a comment."""
 
@@ -72,7 +78,7 @@ class BaseCodeBlockModel(BaseModel):
     end_line_num: int
     code_content: str
     important_comments: list[CommentModel] | None = None
-    dependencies: list[ImportModel | str] | None = None
+    dependencies: list[ImportModel | ModuleDependencyModel] | None = None
     summary: str | None = None
     children: list[
         Union[

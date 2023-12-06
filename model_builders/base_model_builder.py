@@ -8,6 +8,7 @@ from models.models import (
     CommentModel,
     BlockType,
     ImportModel,
+    ModuleDependencyModel,
 )
 
 if TYPE_CHECKING:
@@ -140,7 +141,7 @@ class BaseModelBuilder(ABC):
         return self
 
     def set_dependencies(
-        self, dependencies: list[ImportModel | str] | None
+        self, dependencies: list[ImportModel | ModuleDependencyModel] | None
     ) -> Union[
         "BaseModelBuilder",
         "ModuleModelBuilder",

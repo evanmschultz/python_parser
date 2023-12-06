@@ -4,7 +4,7 @@ from model_builders.class_model_builder import ClassModelBuilder
 from model_builders.function_model_builder import FunctionModelBuilder
 from model_builders.module_model_builder import ModuleModelBuilder
 from model_builders.standalone_block_model_builder import StandaloneBlockModelBuilder
-from models.models import ImportModel
+from models.models import ImportModel, ModuleDependencyModel
 
 
 def gather_and_set_children_dependencies(module_builder: ModuleModelBuilder) -> None:
@@ -24,7 +24,7 @@ def gather_and_set_children_dependencies(module_builder: ModuleModelBuilder) -> 
     """
 
     for block_builder in module_builder.children_builders:
-        block_dependencies: list[ImportModel | str] = []
+        block_dependencies: list[ImportModel | ModuleDependencyModel] = []
         code_content: str = block_builder.common_attributes.code_content
 
         import_dependencies: list[ImportModel] = _gather_import_dependencies(
@@ -32,7 +32,9 @@ def gather_and_set_children_dependencies(module_builder: ModuleModelBuilder) -> 
         )
         block_dependencies.extend(import_dependencies)
 
-        non_import_dependencies: list[str] = _gather_non_import_dependencies(
+        non_import_dependencies: list[
+            ModuleDependencyModel
+        ] = _gather_non_import_dependencies(
             module_builder.children_builders, block_builder, code_content
         )
         block_dependencies.extend(non_import_dependencies)
@@ -74,7 +76,7 @@ def _gather_import_dependencies(
 
 def _get_standalone_block_dependency(
     builder: StandaloneBlockModelBuilder, code_content: str
-) -> str | None:
+) -> ModuleDependencyModel | None:
     """
     Identifies if the given standalone block is a dependency based on variable usage.
 
@@ -89,18 +91,20 @@ def _get_standalone_block_dependency(
         str | None: The ID of the standalone block builder if a dependency is found, otherwise None.
     """
 
-    variables = builder.standalone_block_attributes.variable_assignments
+    variables: list[
+        str
+    ] | None = builder.standalone_block_attributes.variable_assignments
     if variables:
         for variable in variables:
             if re.search(rf"\b{variable}\b\s*=", code_content) is None and re.search(
                 rf"\b{variable}\b", code_content
             ):
-                return builder.id
+                return ModuleDependencyModel(module_code_block_id=builder.id)
 
 
 def _gather_standalone_block_dependency_for_standalone_block(
     builder: StandaloneBlockModelBuilder, code_content: str
-) -> str | None:
+) -> ModuleDependencyModel | None:
     """
     Determines if a given standalone block is a dependency for another standalone block.
 
@@ -121,7 +125,7 @@ def _gather_standalone_block_dependency_for_standalone_block(
     if variables:
         for variable in variables:
             if variable in code_content:
-                return builder.id
+                return ModuleDependencyModel(module_code_block_id=builder.id)
 
 
 def _not_same_builder(builder, block_builder) -> bool:
@@ -131,7 +135,7 @@ def _not_same_builder(builder, block_builder) -> bool:
 
 def _gather_non_import_dependencies(
     children_builders, block_builder, code_content
-) -> list[str]:
+) -> list[ModuleDependencyModel]:
     """
     Gather non-import dependencies from the given `children_builders` and `block_builder`
     based on the provided `code_content`.
@@ -145,34 +149,40 @@ def _gather_non_import_dependencies(
         list: List of dependencies.
     """
 
-    block_dependencies: list[str] = []
+    block_dependencies: list[ModuleDependencyModel] = []
     for builder in children_builders:
         if _not_same_builder(builder, block_builder):
             if isinstance(builder, ClassModelBuilder):
                 if builder.class_attributes.class_name in code_content:
-                    block_dependencies.append(builder.id)
+                    module_dependency = ModuleDependencyModel(
+                        module_code_block_id=builder.id
+                    )
+                    block_dependencies.append(module_dependency)
 
             elif isinstance(builder, FunctionModelBuilder):
                 if builder.function_attributes.function_name in code_content:
-                    block_dependencies.append(builder.id)
+                    module_dependency = ModuleDependencyModel(
+                        module_code_block_id=builder.id
+                    )
+                    block_dependencies.append(module_dependency)
 
             elif isinstance(builder, StandaloneBlockModelBuilder) and isinstance(
                 block_builder, StandaloneBlockModelBuilder
             ):
-                standalone_block_id: str | None = (
+                module_dependency: ModuleDependencyModel | None = (
                     _gather_standalone_block_dependency_for_standalone_block(
                         builder, code_content
                     )
                 )
-                if standalone_block_id:
-                    block_dependencies.append(standalone_block_id)
+                if module_dependency:
+                    block_dependencies.append(module_dependency)
 
             # TODO: Improve logic to find variable dependencies
             elif isinstance(builder, StandaloneBlockModelBuilder):
-                standalone_block_id: str | None = _get_standalone_block_dependency(
+                module_dependency = _get_standalone_block_dependency(
                     builder, code_content
                 )
-                if standalone_block_id:
-                    block_dependencies.append(standalone_block_id)
+                if module_dependency:
+                    block_dependencies.append(module_dependency)
 
     return block_dependencies
