@@ -5,7 +5,7 @@ class ImportModuleType(Enum):
     """Enum of import module types."""
 
     STANDARD_LIBRARY = "STANDARD_LIBRARY"
-    LOCAL = "LOCAL"  # Local to the codebase itself
+    LOCAL = "LOCAL"
     THIRD_PARTY = "THIRD_PARTY"
 
     def __str__(self) -> str:
@@ -40,7 +40,7 @@ class BlockType(Enum):
     IMPORT_BLOCK = "IMPORT_BLOCK"
     CLASS = "CLASS"
     FUNCTION = "FUNCTION"
-    MODULE = "MODULE"  # The module itself, ie. the file
+    MODULE = "MODULE"
 
     def __str__(self) -> str:
         return self.value

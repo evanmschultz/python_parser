@@ -135,7 +135,6 @@ class FunctionSpecificAttributes(BaseModel):
     returns: str | None = None
     is_method: bool = False
     is_async: bool = False
-    # type_parameters: list[str] | None = None # TODO: Add logic if proves useful
 
 
 class FunctionModel(BaseCodeBlockModel, FunctionSpecificAttributes):
