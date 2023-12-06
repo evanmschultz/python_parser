@@ -16,6 +16,20 @@ if TYPE_CHECKING:
 
 
 class ClassModelBuilder(BaseModelBuilder):
+    """
+    A builder class for constructing a model of a Python class.
+
+    This class extends BaseModelBuilder and is specialized for building a model of a Python class, capturing details such as decorators, base classes, documentation strings, class attributes, and class-specific keywords.
+
+    Attributes:
+        class_attributes (ClassSpecificAttributes): An instance containing attributes specific to a class, like name, decorators, bases, etc.
+
+    Args:
+        id (str): The unique identifier for the class model.
+        class_name (str): The name of the class.
+        parent_id (str): The identifier of the parent model (e.g., module or class containing this class).
+    """
+
     def __init__(self, id: str, class_name: str, parent_id: str) -> None:
         super().__init__(id=id, block_type=BlockType.CLASS, parent_id=parent_id)
 
@@ -69,7 +83,7 @@ class ClassModelBuilder(BaseModelBuilder):
 
     @logging_decorator(message="Building ClassModel")
     def build(self) -> ClassModel:
-        """Creates a ClassModel instance."""
+        """Creates a ClassModel instance after building and setting the children models."""
         self.build_and_set_children()
         return ClassModel(
             **self._get_common_attributes(),

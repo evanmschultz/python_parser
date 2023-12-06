@@ -22,6 +22,24 @@ from utilities.processing_context import NodeAndPositionData
 def gather_standalone_lines(
     node_body: Sequence[libcst.CSTNode], visitor_instance
 ) -> list[NodeAndPositionData]:
+    """
+    Gathers standalone lines of code that are not part of class or function definitions or import statements.
+
+    This function iterates over a sequence of CSTNodes, identifying blocks of code that stand alone. Standalone blocks are those not encapsulated in class or function definitions and not part of import statements.
+
+    Args:
+        node_body: A sequence of libcst.CSTNode representing the body of a module or a block.
+        visitor_instance: An instance of a visitor class that provides additional context and utilities.
+
+    Returns:
+        A list of NodeAndPositionData, each representing a standalone block of code with its start and end line numbers.
+
+    Example:
+        >>> visitor_instance = ModuleVisitor(id="module1", ...)
+        >>> standalone_blocks = gather_standalone_lines(module_ast.body, visitor_instance)
+        # This will process the module AST and return standalone blocks of code.
+    """
+
     standalone_blocks: list[NodeAndPositionData] = []
     standalone_block: list[libcst.CSTNode] = []
     start_line = end_line = 0
@@ -51,19 +69,26 @@ def gather_standalone_lines(
     return standalone_blocks
 
 
-def _is_class_or_function_def(statement: libcst.CSTNode) -> bool:
-    return isinstance(statement, (libcst.ClassDef, libcst.FunctionDef))
-
-
-def _is_import_statement(statement: libcst.CSTNode) -> bool:
-    return isinstance(statement, libcst.SimpleStatementLine) and any(
-        isinstance(elem, (libcst.Import, libcst.ImportFrom)) for elem in statement.body
-    )
-
-
 def process_standalone_blocks(
     code_blocks: list[NodeAndPositionData], parent_id: str
 ) -> list[StandaloneBlockModelBuilder]:
+    """
+    Processes standalone blocks of code and builds models for each block.
+
+    Iterates over a list of standalone code blocks, processing each to build a model representing the block. Each block is assigned an identifier and associated with a parent identifier.
+
+    Args:
+        code_blocks: A list of NodeAndPositionData representing standalone code blocks.
+        parent_id: The identifier of the parent (usually a module or class).
+
+    Returns:
+        A list of StandaloneBlockModelBuilder, each representing a processed standalone block.
+
+    Example:
+        >>> standalone_blocks_models = process_standalone_blocks(standalone_blocks, "module1")
+        # Processes standalone blocks and creates models for them.
+    """
+
     models: list[StandaloneBlockModelBuilder] = []
     for count, code_block in enumerate(code_blocks):
         models.append(_process_standalone_block(code_block, parent_id, count + 1))
@@ -71,10 +96,26 @@ def process_standalone_blocks(
     return models
 
 
+def _is_class_or_function_def(statement: libcst.CSTNode) -> bool:
+    """Returns True if the statement is a class or function definition."""
+
+    return isinstance(statement, (libcst.ClassDef, libcst.FunctionDef))
+
+
+def _is_import_statement(statement: libcst.CSTNode) -> bool:
+    """Returns True if the statement is an import statement."""
+
+    return isinstance(statement, libcst.SimpleStatementLine) and any(
+        isinstance(elem, (libcst.Import, libcst.ImportFrom)) for elem in statement.body
+    )
+
+
 # TODO: Fix important comment logic
 def _process_standalone_block(
     standalone_block: NodeAndPositionData, parent_id: str, count: int
 ) -> StandaloneBlockModelBuilder:
+    """Processes a standalone block of code and sets the attributes in the model builder, returns the builder instance."""
+
     id: str = StandaloneCodeBlockIDGenerationStrategy.generate_id(parent_id, count)
     builder: StandaloneBlockModelBuilder = BuilderFactory.create_builder_instance(
         block_type=BlockType.STANDALONE_CODE_BLOCK,
@@ -98,6 +139,8 @@ def _process_standalone_block(
 def _process_nodes(
     standalone_block: NodeAndPositionData,
 ) -> tuple[str, list[str], list[CommentModel]]:
+    """Processes the nodes in a standalone block of code and returns the content, variable assignments and important comments."""
+
     content: str = ""
     variable_assignments: list[str] = []
     important_comments: list[CommentModel] = []
@@ -114,6 +157,8 @@ def _process_nodes(
 
 
 def _process_leading_lines(line: libcst.CSTNode) -> list[CommentModel]:
+    """Processes the leading lines of a node and returns the important comments."""
+
     important_comments: list[CommentModel] = []
 
     if isinstance(line, libcst.SimpleStatementLine):
@@ -130,6 +175,8 @@ def _process_leading_lines(line: libcst.CSTNode) -> list[CommentModel]:
 def _extract_variable_assignments(
     node: libcst.SimpleStatementLine,
 ) -> list[str]:
+    """Extracts variable assignments from a SimpleStatementLine node."""
+
     variable_assignments: list[str] = []
     for stmt in node.body:
         if isinstance(stmt, (libcst.AnnAssign, libcst.Assign)):

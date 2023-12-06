@@ -10,6 +10,24 @@ from model_builders.base_model_builder import BaseModelBuilder
 
 
 class ModuleModelBuilder(BaseModelBuilder):
+    """
+    A builder class for constructing a model of a Python module.
+
+    This class extends BaseModelBuilder and specializes in building a detailed model of a Python module, capturing various aspects such as the module's docstring, header content, footer content, and imports. It allows for the incremental construction of the module model by adding or setting various components.
+
+    Attributes:
+        module_attributes (ModuleSpecificAttributes): An instance containing attributes specific to a module, like file path, docstring, header, footer, and imports.
+
+    Args:
+        id (str): The unique identifier for the module model.
+        file_path (str): The file path of the module being modeled.
+
+    Example:
+        >>> module_builder = ModuleModelBuilder(id='module1', file_path='/path/to/module.py')
+        >>> module_builder.set_docstring("This is a docstring").add_import(some_import_model)
+        # Configures the module builder with a docstring and an import.
+    """
+
     def __init__(self, id: str, file_path: str) -> None:
         super().__init__(id=id, block_type=BlockType.MODULE, parent_id=None)
 
@@ -56,7 +74,7 @@ class ModuleModelBuilder(BaseModelBuilder):
 
     @logging_decorator(message="Building module model")
     def build(self) -> ModuleModel:
-        """Builds and returns the module model instance."""
+        """Builds and returns the module model instance after building and setting the children models."""
         self.build_and_set_children()
         return ModuleModel(
             **self._get_common_attributes(), **self._get_module_specific_attributes()

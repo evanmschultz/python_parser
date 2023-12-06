@@ -20,6 +20,28 @@ if TYPE_CHECKING:
 
 
 class BaseModelBuilder(ABC):
+    """
+    Abstract base class for building models of different code blocks.
+
+    This class follows the builder pattern, providing a structured approach to constructing models for various types of code blocks (like modules, classes, functions). It defines common attributes and methods used across all specific model builders.
+
+    Attributes:
+        id (str): The unique identifier for the code block.
+        children_builders (list[Union[ClassModelBuilder, FunctionModelBuilder, StandaloneBlockModelBuilder]]):
+            A list of builders for the children code blocks.
+        common_attributes (BaseCodeBlockModel): An instance containing common attributes shared across different code block models.
+
+    Example:
+        # This example demonstrates how a derived builder might be initialized and used.
+        >>> class SomeModelBuilder(BaseModelBuilder):
+                def build(self):
+                    # Building logic specific to 'SomeModelBuilder'
+                    pass
+        >>> builder = SomeModelBuilder(id='123', block_type=BlockType.CLASS, parent_id='root')
+        >>> builder.set_start_line_num(1).set_end_line_num(10)
+        # Sets the start and end line numbers for the code block.
+    """
+
     def __init__(
         self, *, id: str, block_type: BlockType, parent_id: str | None
     ) -> None:
@@ -114,7 +136,7 @@ class BaseModelBuilder(ABC):
         "FunctionModelBuilder",
     ]:
         """Adds a child code block to the model instance."""
-        self.children_builders.append(child)  # type: ignore # TODO: Remove type ignore when stand alone code block model is added
+        self.children_builders.append(child)
         return self
 
     def set_dependencies(

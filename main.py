@@ -17,6 +17,17 @@ def main(
         help="The path to the output directory",
     ),
 ) -> None:
+    """
+    Parse the specified directory and save the results in the output directory.
+
+    Args:
+        directory (str): The path to the directory to parse.
+        output_directory (str): The path to the output directory.
+
+    Returns:
+        None
+    """
+
     logger: Logger = logging.getLogger(__name__)
     logger.info("Starting the directory parsing.")
 

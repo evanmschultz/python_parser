@@ -21,20 +21,23 @@ def logging_decorator(
     syntax_highlighting: bool = False,
 ) -> Callable:
     """
-    A decorator that adds logging functionality to a function, with optional syntax highlighting.
+    A decorator for adding enhanced logging to functions, with optional syntax highlighting.
+
+    This decorator logs the call to the decorated function at the specified logging level. If syntax_highlighting is enabled and the first argument of the function is a libcst.CSTNode, the decorator logs the node's content with syntax highlighting.
 
     Args:
-        level (int): The logging level. Default is DEBUG.
-        message (str, optional): Custom log message. If None, a default message is generated.
-        syntax_highlighting (bool): Flag to enable syntax highlighting in the log.
+        level (int): The logging level. Defaults to logging.DEBUG.
+        message (str | None): Custom log message. If None, a default message is generated.
+        syntax_highlighting (bool): If True, enables syntax highlighting for libcst.CSTNode arguments.
 
     Returns:
-        function: A decorated function with logging capability.
+        Callable: The decorated function with enhanced logging capability.
 
     Example:
-        @logging_decorator(level=logging.INFO, message="Function start", syntax_highlighting=True)
-        def sample_function():
-            pass
+        >>> @logging_decorator(level=logging.INFO, message="Function start", syntax_highlighting=True)
+        >>> def sample_function(arg1):
+        >>>     pass
+        # This decorates 'sample_function' with enhanced logging at INFO level.
     """
 
     def decorator(func):
