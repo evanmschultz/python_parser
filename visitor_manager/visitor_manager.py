@@ -50,15 +50,18 @@ class VisitorManager:
 
     @logging_decorator(message="Saving visited directories")
     def save_visited_directories(
-        self, directory_mape_name: str = "00_directory_module_map.json"
+        self, directory_mape_name: str = "directory_map.json"
     ) -> None:
         """
         Saves a JSON file mapping each visited directory to its Python files.
 
         The output is saved in a file named '00_directory_module_map.json' within the specified output directory.
 
+        Args:
+            directory_mape_name (str): The name of the output file for the directory map.
+
         Example:
-            >>> vm.save_visited_directories()
+            >>> vm.save_visited_directories("directory_map.json")
             # Saves a mapping of directories to Python files as JSON.
         """
 
